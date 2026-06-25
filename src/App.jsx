@@ -222,10 +222,12 @@ function App() {
         {mensaje && <p style={{ marginTop: '0.5rem' }}>{mensaje}</p>}
       </div>
 
-      {/* Lista de clientes con su saldo y detalle */}
-      <h2>Clientes y saldos</h2>
-      {clientes.length === 0 && <p>No hay clientes todavía.</p>}
-      {clientes.map((c) => (
+      {/* Lista de clientes con su saldo y detalle (solo los que deben algo) */}
+      <h2>Clientes con saldo pendiente</h2>
+      {clientes.filter((c) => c.saldo > 0).length === 0 && (
+        <p>Ningún cliente tiene saldo pendiente.</p>
+      )}
+      {clientes.filter((c) => c.saldo > 0).map((c) => (
         <div key={c.id} style={{ marginBottom: '1rem', padding: '0.8rem', border: '1px solid #eee', borderRadius: '8px' }}>
           <strong>{c.nombre}</strong> — debe: L {c.saldo.toFixed(2)}
           <ul style={{ marginTop: '0.4rem', fontSize: '0.9rem' }}>
