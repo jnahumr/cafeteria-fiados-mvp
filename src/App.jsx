@@ -6,6 +6,8 @@ function App() {
   const [session, setSession] = useState(null)          // sesión del usuario logueado
   const [negocioId, setNegocioId] = useState(null)      // id del negocio del usuario
   const [nombreNegocio, setNombreNegocio] = useState('')// nombre del negocio (para el header)
+  const [codigoInvitacion, setCodigoInvitacion] = useState('') // código (solo lo usa la dueña)
+  const [rol, setRol] = useState('')                    // 'duena' o 'empleado'
   const [cargando, setCargando] = useState(true)        // evita parpadeo del login al iniciar
 
   // --- Estado del módulo de créditos ---
@@ -37,17 +39,20 @@ function App() {
     return () => sub.subscription.unsubscribe()
   }, [])
 
-  // === 2. Cuando hay sesión: averiguar el negocio del usuario (id y nombre) ===
+  // === 2. Cuando hay sesión: averiguar el negocio, rol y código del usuario ===
   useEffect(() => {
     if (!session) {
       setNegocioId(null)
       setNombreNegocio('')
+      setCodigoInvitacion('')
+      setRol('')
       return
     }
     async function cargarNegocio() {
+      // Traemos negocio_id, rol y, con un join, el nombre y el código del negocio
       const { data, error } = await supabase
         .from('perfiles')
-        .select('negocio_id, negocios(nombre)')
+        .select('negocio_id, rol, negocios(nombre, codigo_invitacion)')
         .eq('id', session.user.id)
         .single()
 
@@ -56,7 +61,9 @@ function App() {
         return
       }
       setNegocioId(data.negocio_id)
+      setRol(data.rol || '')
       setNombreNegocio(data.negocios?.nombre || '')
+      setCodigoInvitacion(data.negocios?.codigo_invitacion || '')
     }
     cargarNegocio()
   }, [session])
@@ -71,7 +78,6 @@ function App() {
   }, [negocioId])
 
   // Carga clientes, sus movimientos y calcula saldos
-  // (RLS filtra automáticamente para mostrar solo los de MI negocio)
   async function cargarClientes() {
     const { data: listaClientes, error: errC } = await supabase
       .from('clientes')
@@ -127,6 +133,12 @@ function App() {
         setMonto(String(Number(p.precio)))
       }
     }
+  }
+
+  // Copia el código de invitación al portapapeles
+  function copiarCodigo() {
+    navigator.clipboard.writeText(codigoInvitacion)
+    setMensaje('Código copiado: ' + codigoInvitacion)
   }
 
   // Agrega un producto nuevo al catálogo del negocio
@@ -334,7 +346,10 @@ function App() {
         <div>
           <h1 style={{ marginBottom: '0.2rem' }}>Control de Créditos</h1>
           {nombreNegocio && (
-            <p style={{ margin: 0, color: '#555', fontSize: '1rem' }}>{nombreNegocio}</p>
+            <p style={{ margin: 0, color: '#555', fontSize: '1rem' }}>
+              {nombreNegocio}
+              {rol === 'empleado' && <span style={{ color: '#888' }}> · empleado</span>}
+            </p>
           )}
         </div>
         <button
@@ -344,6 +359,18 @@ function App() {
           Cerrar sesión
         </button>
       </div>
+
+      {/* Código de invitación: solo lo ve la dueña */}
+      {rol === 'duena' && codigoInvitacion && (
+        <div style={{ marginTop: '1rem', padding: '0.7rem 1rem', background: '#f0f4ff', border: '1px solid #b0c4ff', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <span style={{ fontSize: '0.9rem' }}>
+            Código para invitar empleados: <strong style={{ fontSize: '1.1rem', letterSpacing: '1px' }}>{codigoInvitacion}</strong>
+          </span>
+          <button onClick={copiarCodigo} style={{ padding: '0.3rem 0.7rem', cursor: 'pointer' }}>
+            Copiar
+          </button>
+        </div>
+      )}
 
       {/* Sección plegable: gestionar el catálogo de productos */}
       <div style={{ marginTop: '1.5rem' }}>
@@ -358,7 +385,6 @@ function App() {
           <div style={{ marginTop: '0.8rem', padding: '1rem', border: '1px solid #ccc', borderRadius: '8px' }}>
             <h3 style={{ marginTop: 0 }}>Mis productos</h3>
 
-            {/* Formulario para agregar un producto */}
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.8rem', flexWrap: 'wrap' }}>
               <input
                 type="text"
@@ -379,7 +405,6 @@ function App() {
               </button>
             </div>
 
-            {/* Lista de productos existentes */}
             {productos.length === 0 && (
               <p style={{ fontSize: '0.9rem', color: '#777' }}>
                 Aún no tienes productos. Agrega los que vendes para que aparezcan al registrar un fiado.
@@ -509,14 +534,16 @@ function App() {
 }
 
 // =======================================================================
-// Componente de autenticación: login e inscripción de un negocio nuevo
+// Componente de autenticación: login, crear negocio, o unirse por código
 // =======================================================================
 function Auth() {
-  const [modo, setModo] = useState('login')  // 'login' o 'registro'
+  // 'login' | 'crear' (dueña) | 'unir' (empleado con código)
+  const [modo, setModo] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [nombre, setNombre] = useState('')
   const [nombreNegocio, setNombreNegocio] = useState('')
+  const [codigo, setCodigo] = useState('')
   const [error, setError] = useState('')
   const [procesando, setProcesando] = useState(false)
 
@@ -528,7 +555,7 @@ function Auth() {
     setProcesando(false)
   }
 
-  async function registrar() {
+  async function crearNegocio() {
     setError('')
     if (nombreNegocio.trim() === '') {
       setError('Escribe el nombre de tu negocio.')
@@ -549,22 +576,68 @@ function Auth() {
     setProcesando(false)
   }
 
+  async function unirseConCodigo() {
+    setError('')
+    if (codigo.trim() === '') {
+      setError('Escribe el código de invitación que te dieron.')
+      return
+    }
+    setProcesando(true)
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          nombre: nombre.trim(),
+          codigo_invitacion: codigo.trim().toUpperCase(),
+        },
+      },
+    })
+    // Si el código es inválido, el trigger falla y Supabase devuelve error
+    if (error) setError('No se pudo unir: verifica el código. (' + error.message + ')')
+    setProcesando(false)
+  }
+
+  function accionPrincipal() {
+    if (modo === 'login') return iniciarSesion()
+    if (modo === 'crear') return crearNegocio()
+    return unirseConCodigo()
+  }
+
+  const titulo =
+    modo === 'login' ? 'Iniciar sesión'
+      : modo === 'crear' ? 'Registrar mi negocio'
+        : 'Unirme a un negocio'
+
+  const textoBoton =
+    procesando ? 'Procesando...'
+      : modo === 'login' ? 'Entrar'
+        : modo === 'crear' ? 'Crear cuenta'
+          : 'Unirme'
+
   return (
     <div style={{ padding: '2rem', fontFamily: 'sans-serif', maxWidth: '400px', margin: '2rem auto' }}>
       <h1>Control de Créditos</h1>
       <div style={{ padding: '1.5rem', border: '1px solid #ccc', borderRadius: '8px' }}>
-        <h2>{modo === 'login' ? 'Iniciar sesión' : 'Registrar mi negocio'}</h2>
+        <h2>{titulo}</h2>
 
-        {modo === 'registro' && (
+        {/* Nombre de la persona: en crear y unir */}
+        {(modo === 'crear' || modo === 'unir') && (
           <>
             <label>Tu nombre:</label>
             <input
               type="text"
-              placeholder="Ej. María López"
+              placeholder="Ej. Carlos Pérez"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem' }}
             />
+          </>
+        )}
+
+        {/* Nombre del negocio: solo al crear */}
+        {modo === 'crear' && (
+          <>
             <label>Nombre del negocio:</label>
             <input
               type="text"
@@ -576,9 +649,24 @@ function Auth() {
           </>
         )}
 
+        {/* Código de invitación: solo al unirse */}
+        {modo === 'unir' && (
+          <>
+            <label>Código de invitación:</label>
+            <input
+              type="text"
+              placeholder="Ej. A3F9K2"
+              value={codigo}
+              onChange={(e) => setCodigo(e.target.value)}
+              style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem', textTransform: 'uppercase' }}
+            />
+          </>
+        )}
+
         <label>Correo:</label>
         <input
           type="email"
+          autoComplete="email"
           placeholder="correo@ejemplo.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -588,6 +676,7 @@ function Auth() {
         <label>Contraseña:</label>
         <input
           type="password"
+          autoComplete={modo === 'login' ? 'current-password' : 'new-password'}
           placeholder="Mínimo 6 caracteres"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -595,28 +684,19 @@ function Auth() {
         />
 
         <button
-          onClick={modo === 'login' ? iniciarSesion : registrar}
+          onClick={accionPrincipal}
           disabled={procesando}
           style={{ padding: '0.5rem 1rem', cursor: 'pointer', width: '100%' }}
         >
-          {procesando ? 'Procesando...' : modo === 'login' ? 'Entrar' : 'Crear cuenta'}
+          {textoBoton}
         </button>
 
         {error && <p style={{ marginTop: '0.5rem', color: 'red' }}>{error}</p>}
 
-        <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
-          {modo === 'login' ? (
-            <>
-              ¿No tienes cuenta?{' '}
-              <button
-                onClick={() => { setModo('registro'); setError('') }}
-                style={{ border: 'none', background: 'none', color: 'blue', cursor: 'pointer', textDecoration: 'underline' }}
-              >
-                Registra tu negocio
-              </button>
-            </>
-          ) : (
-            <>
+        {/* Enlaces para cambiar de modo */}
+        <div style={{ marginTop: '1rem', fontSize: '0.9rem', lineHeight: '1.8' }}>
+          {modo !== 'login' && (
+            <div>
               ¿Ya tienes cuenta?{' '}
               <button
                 onClick={() => { setModo('login'); setError('') }}
@@ -624,9 +704,31 @@ function Auth() {
               >
                 Inicia sesión
               </button>
-            </>
+            </div>
           )}
-        </p>
+          {modo !== 'crear' && (
+            <div>
+              ¿Vas a abrir un negocio nuevo?{' '}
+              <button
+                onClick={() => { setModo('crear'); setError('') }}
+                style={{ border: 'none', background: 'none', color: 'blue', cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                Registra tu negocio
+              </button>
+            </div>
+          )}
+          {modo !== 'unir' && (
+            <div>
+              ¿Te invitaron a un negocio?{' '}
+              <button
+                onClick={() => { setModo('unir'); setError('') }}
+                style={{ border: 'none', background: 'none', color: 'blue', cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                Unirme con código
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
