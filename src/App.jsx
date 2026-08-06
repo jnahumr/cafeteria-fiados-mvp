@@ -12,11 +12,12 @@ const PLATOS = [
 
 function App() {
   // --- Estado de sesión y negocio ---
-  const [session, setSession] = useState(null)      // sesión del usuario logueado
-  const [negocioId, setNegocioId] = useState(null)  // id del negocio del usuario
-  const [cargando, setCargando] = useState(true)    // evita parpadeo del login al iniciar
+  const [session, setSession] = useState(null)          // sesión del usuario logueado
+  const [negocioId, setNegocioId] = useState(null)      // id del negocio del usuario
+  const [nombreNegocio, setNombreNegocio] = useState('')// nombre del negocio (para el header)
+  const [cargando, setCargando] = useState(true)        // evita parpadeo del login al iniciar
 
-  // --- Estado del módulo de fiados ---
+  // --- Estado del módulo de créditos ---
   const [clientes, setClientes] = useState([])        // clientes con saldo y movimientos
   const [clienteSel, setClienteSel] = useState('')    // cliente seleccionado en el desplegable
   const [nombreNuevo, setNombreNuevo] = useState('')  // nombre si es cliente nuevo
@@ -27,13 +28,11 @@ function App() {
 
   // === 1. Al iniciar: revisar si ya hay sesión y escuchar cambios ===
   useEffect(() => {
-    // Sesión actual (si el usuario ya estaba logueado)
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
       setCargando(false)
     })
 
-    // Escuchar login / logout para actualizar la pantalla en tiempo real
     const { data: sub } = supabase.auth.onAuthStateChange((_evento, nuevaSesion) => {
       setSession(nuevaSesion)
     })
@@ -41,16 +40,18 @@ function App() {
     return () => sub.subscription.unsubscribe()
   }, [])
 
-  // === 2. Cuando hay sesión: averiguar a qué negocio pertenece el usuario ===
+  // === 2. Cuando hay sesión: averiguar el negocio del usuario (id y nombre) ===
   useEffect(() => {
     if (!session) {
       setNegocioId(null)
+      setNombreNegocio('')
       return
     }
     async function cargarNegocio() {
+      // Traemos el negocio_id y, con un join, el nombre del negocio
       const { data, error } = await supabase
         .from('perfiles')
-        .select('negocio_id')
+        .select('negocio_id, negocios(nombre)')
         .eq('id', session.user.id)
         .single()
 
@@ -59,6 +60,7 @@ function App() {
         return
       }
       setNegocioId(data.negocio_id)
+      setNombreNegocio(data.negocios?.nombre || '')
     }
     cargarNegocio()
   }, [session])
@@ -108,23 +110,19 @@ function App() {
   async function registrarFiado() {
     setMensaje('')
 
-    // Validación del monto
     const montoNum = Number(monto)
     if (!montoNum || montoNum <= 0) {
       setMensaje('El monto debe ser un número mayor que cero.')
       return
     }
 
-    // Determinamos el cliente: existente o nuevo
     let clienteId
 
     if (clienteSel === 'nuevo') {
-      // Cliente nuevo: validamos el nombre
       if (nombreNuevo.trim() === '') {
         setMensaje('Escribe el nombre del cliente nuevo.')
         return
       }
-      // Al crear el cliente, le ponemos el negocio_id (RLS lo exige)
       const { data: nuevo, error: errNuevo } = await supabase
         .from('clientes')
         .insert({ nombre: nombreNuevo.trim(), negocio_id: negocioId })
@@ -140,18 +138,15 @@ function App() {
       setMensaje('Selecciona un cliente o agrega uno nuevo.')
       return
     } else {
-      // Cliente existente: clienteSel ya es el id
       clienteId = Number(clienteSel)
     }
 
-    // Determinamos el concepto (plato)
     const concepto = platoSel === 'Otro' ? platoOtro.trim() : platoSel
     if (concepto === '') {
       setMensaje('Escribe qué plato es (opción Otro).')
       return
     }
 
-    // Insertamos el movimiento de tipo "fiado" con su concepto y el negocio_id
     const { error: errMov } = await supabase
       .from('movimientos')
       .insert({ cliente_id: clienteId, tipo: 'fiado', monto: montoNum, concepto, negocio_id: negocioId })
@@ -161,7 +156,6 @@ function App() {
       return
     }
 
-    // Limpiamos y recargamos
     setMensaje('Fiado registrado correctamente.')
     setMonto('')
     setNombreNuevo('')
@@ -171,9 +165,41 @@ function App() {
     cargarClientes()
   }
 
+  // Registra un abono (pago) de un cliente, reduciendo su saldo
+  async function registrarAbono(cliente) {
+    setMensaje('')
+    const entrada = window.prompt(
+      `¿Cuánto abona ${cliente.nombre}? (L)\nDebe: L ${cliente.saldo.toFixed(2)}`
+    )
+    if (entrada === null) return // el usuario canceló
+
+    const montoAbono = Number(entrada)
+    if (!montoAbono || montoAbono <= 0) {
+      setMensaje('El monto del abono debe ser un número mayor que cero.')
+      return
+    }
+
+    const { error } = await supabase
+      .from('movimientos')
+      .insert({
+        cliente_id: cliente.id,
+        tipo: 'abono',
+        monto: montoAbono,
+        concepto: 'Abono',
+        negocio_id: negocioId,
+      })
+
+    if (error) {
+      setMensaje('Error al registrar el abono: ' + error.message)
+      return
+    }
+
+    setMensaje(`Abono de L ${montoAbono.toFixed(2)} registrado para ${cliente.nombre}.`)
+    cargarClientes() // recargamos para actualizar el saldo
+  }
+
   // Elimina un movimiento (fiado o abono) por su id
   async function eliminarMovimiento(idMovimiento) {
-    // Confirmación para evitar borrados accidentales
     const confirmar = window.confirm('¿Seguro que deseas eliminar este movimiento?')
     if (!confirmar) return
 
@@ -188,7 +214,7 @@ function App() {
     }
 
     setMensaje('Movimiento eliminado.')
-    cargarClientes()  // recargamos para actualizar saldos
+    cargarClientes()
   }
 
   // Cierra la sesión del usuario
@@ -218,11 +244,16 @@ function App() {
     return <Auth />
   }
 
-  // --- Si hay sesión, mostramos la app de fiados ---
+  // --- Si hay sesión, mostramos la app de créditos ---
   return (
     <div style={{ padding: '2rem', fontFamily: 'sans-serif', maxWidth: '550px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Control de Fiados</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h1 style={{ marginBottom: '0.2rem' }}>Control de Créditos</h1>
+          {nombreNegocio && (
+            <p style={{ margin: 0, color: '#555', fontSize: '1rem' }}>{nombreNegocio}</p>
+          )}
+        </div>
         <button
           onClick={cerrarSesion}
           style={{ padding: '0.4rem 0.8rem', cursor: 'pointer', height: 'fit-content' }}
@@ -232,10 +263,9 @@ function App() {
       </div>
 
       {/* Formulario para registrar un fiado */}
-      <div style={{ marginBottom: '1.5rem', padding: '1rem', border: '1px solid #ccc', borderRadius: '8px' }}>
+      <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem', padding: '1rem', border: '1px solid #ccc', borderRadius: '8px' }}>
         <h2>Registrar fiado</h2>
 
-        {/* Selección de cliente */}
         <label>Cliente:</label>
         <select
           value={clienteSel}
@@ -249,7 +279,6 @@ function App() {
           <option value="nuevo">+ Agregar cliente nuevo</option>
         </select>
 
-        {/* Campo de nombre solo si es cliente nuevo */}
         {clienteSel === 'nuevo' && (
           <input
             type="text"
@@ -260,7 +289,6 @@ function App() {
           />
         )}
 
-        {/* Selección de plato */}
         <label>Plato:</label>
         <select
           value={platoSel}
@@ -273,7 +301,6 @@ function App() {
           <option value="Otro">Otro...</option>
         </select>
 
-        {/* Campo de texto solo si elige "Otro" */}
         {platoSel === 'Otro' && (
           <input
             type="text"
@@ -284,7 +311,6 @@ function App() {
           />
         )}
 
-        {/* Monto */}
         <label>Monto (L):</label>
         <input
           type="number"
@@ -307,7 +333,16 @@ function App() {
       )}
       {clientes.filter((c) => c.saldo > 0).map((c) => (
         <div key={c.id} style={{ marginBottom: '1rem', padding: '0.8rem', border: '1px solid #eee', borderRadius: '8px' }}>
-          <strong>{c.nombre}</strong> — debe: L {c.saldo.toFixed(2)}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span><strong>{c.nombre}</strong> — debe: L {c.saldo.toFixed(2)}</span>
+            <button
+              onClick={() => registrarAbono(c)}
+              style={{ padding: '0.3rem 0.7rem', cursor: 'pointer', background: '#e8f5e9', border: '1px solid #66bb6a', borderRadius: '6px', color: '#2e7d32' }}
+              title="Registrar un pago de este cliente"
+            >
+              Abonar
+            </button>
+          </div>
           <ul style={{ marginTop: '0.4rem', fontSize: '0.9rem' }}>
             {c.movimientos.map((m) => (
               <li key={m.id} style={{ marginBottom: '0.3rem' }}>
@@ -336,8 +371,8 @@ function Auth() {
   const [modo, setModo] = useState('login')  // 'login' o 'registro'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [nombre, setNombre] = useState('')            // nombre de la persona (dueña)
-  const [nombreNegocio, setNombreNegocio] = useState('') // nombre del negocio (solo registro)
+  const [nombre, setNombre] = useState('')
+  const [nombreNegocio, setNombreNegocio] = useState('')
   const [error, setError] = useState('')
   const [procesando, setProcesando] = useState(false)
 
@@ -356,8 +391,6 @@ function Auth() {
       return
     }
     setProcesando(true)
-    // El nombre y el nombre del negocio viajan como metadata;
-    // el trigger de la base de datos crea el negocio y el perfil.
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -374,11 +407,10 @@ function Auth() {
 
   return (
     <div style={{ padding: '2rem', fontFamily: 'sans-serif', maxWidth: '400px', margin: '2rem auto' }}>
-      <h1>Control de Fiados</h1>
+      <h1>Control de Créditos</h1>
       <div style={{ padding: '1.5rem', border: '1px solid #ccc', borderRadius: '8px' }}>
         <h2>{modo === 'login' ? 'Iniciar sesión' : 'Registrar mi negocio'}</h2>
 
-        {/* Campos solo visibles en registro */}
         {modo === 'registro' && (
           <>
             <label>Tu nombre:</label>
@@ -428,7 +460,6 @@ function Auth() {
 
         {error && <p style={{ marginTop: '0.5rem', color: 'red' }}>{error}</p>}
 
-        {/* Cambiar entre login y registro */}
         <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
           {modo === 'login' ? (
             <>
