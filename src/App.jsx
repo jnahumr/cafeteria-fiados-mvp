@@ -1,15 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabaseClient'
 
-// Lista de platos predefinidos para el desplegable
-const PLATOS = [
-  'Pollo a la plancha',
-  'Pollo con tajadas',
-  'Costilla BBQ',
-  'Sopa de res',
-  'Carne asada',
-]
-
 function App() {
   // --- Estado de sesión y negocio ---
   const [session, setSession] = useState(null)          // sesión del usuario logueado
@@ -19,12 +10,18 @@ function App() {
 
   // --- Estado del módulo de créditos ---
   const [clientes, setClientes] = useState([])        // clientes con saldo y movimientos
+  const [productos, setProductos] = useState([])      // catálogo de productos del negocio
   const [clienteSel, setClienteSel] = useState('')    // cliente seleccionado en el desplegable
   const [nombreNuevo, setNombreNuevo] = useState('')  // nombre si es cliente nuevo
-  const [platoSel, setPlatoSel] = useState(PLATOS[0]) // plato seleccionado
-  const [platoOtro, setPlatoOtro] = useState('')      // texto si elige "Otro"
+  const [productoSel, setProductoSel] = useState('')  // producto seleccionado (id) o 'otro'
+  const [productoOtro, setProductoOtro] = useState('')// texto si elige "Otro"
   const [monto, setMonto] = useState('')              // monto del fiado
   const [mensaje, setMensaje] = useState('')          // mensaje de éxito o error
+
+  // --- Estado para gestionar el catálogo de productos ---
+  const [mostrarProductos, setMostrarProductos] = useState(false)
+  const [nuevoProdNombre, setNuevoProdNombre] = useState('')
+  const [nuevoProdPrecio, setNuevoProdPrecio] = useState('')
 
   // === 1. Al iniciar: revisar si ya hay sesión y escuchar cambios ===
   useEffect(() => {
@@ -48,7 +45,6 @@ function App() {
       return
     }
     async function cargarNegocio() {
-      // Traemos el negocio_id y, con un join, el nombre del negocio
       const { data, error } = await supabase
         .from('perfiles')
         .select('negocio_id, negocios(nombre)')
@@ -65,9 +61,12 @@ function App() {
     cargarNegocio()
   }, [session])
 
-  // === 3. Cuando ya sabemos el negocio: cargar sus clientes ===
+  // === 3. Cuando ya sabemos el negocio: cargar clientes y productos ===
   useEffect(() => {
-    if (negocioId) cargarClientes()
+    if (negocioId) {
+      cargarClientes()
+      cargarProductos()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [negocioId])
 
@@ -94,7 +93,6 @@ function App() {
       return
     }
 
-    // Para cada cliente: calculamos saldo y guardamos sus movimientos
     const clientesConSaldo = listaClientes.map((cliente) => {
       const susMovimientos = movimientos.filter((m) => m.cliente_id === cliente.id)
       const saldo = susMovimientos.reduce((total, m) => {
@@ -104,6 +102,76 @@ function App() {
     })
 
     setClientes(clientesConSaldo)
+  }
+
+  // Carga el catálogo de productos del negocio
+  async function cargarProductos() {
+    const { data, error } = await supabase
+      .from('productos')
+      .select('*')
+      .order('nombre')
+
+    if (error) {
+      setMensaje('Error al cargar productos: ' + error.message)
+      return
+    }
+    setProductos(data)
+  }
+
+  // Al elegir un producto del desplegable, autocompleta el monto con su precio
+  function seleccionarProducto(valor) {
+    setProductoSel(valor)
+    if (valor && valor !== 'otro') {
+      const p = productos.find((x) => x.id === valor)
+      if (p && Number(p.precio) > 0) {
+        setMonto(String(Number(p.precio)))
+      }
+    }
+  }
+
+  // Agrega un producto nuevo al catálogo del negocio
+  async function agregarProducto() {
+    setMensaje('')
+    if (nuevoProdNombre.trim() === '') {
+      setMensaje('Escribe el nombre del producto.')
+      return
+    }
+    const precioNum = Number(nuevoProdPrecio) || 0
+    if (precioNum < 0) {
+      setMensaje('El precio no puede ser negativo.')
+      return
+    }
+
+    const { error } = await supabase
+      .from('productos')
+      .insert({ nombre: nuevoProdNombre.trim(), precio: precioNum, negocio_id: negocioId })
+
+    if (error) {
+      setMensaje('Error al agregar producto: ' + error.message)
+      return
+    }
+
+    setMensaje('Producto agregado.')
+    setNuevoProdNombre('')
+    setNuevoProdPrecio('')
+    cargarProductos()
+  }
+
+  // Elimina un producto del catálogo
+  async function eliminarProducto(idProducto) {
+    const confirmar = window.confirm('¿Eliminar este producto del catálogo?')
+    if (!confirmar) return
+
+    const { error } = await supabase
+      .from('productos')
+      .delete()
+      .eq('id', idProducto)
+
+    if (error) {
+      setMensaje('Error al eliminar producto: ' + error.message)
+      return
+    }
+    cargarProductos()
   }
 
   // Registra un nuevo fiado
@@ -141,10 +209,24 @@ function App() {
       clienteId = Number(clienteSel)
     }
 
-    const concepto = platoSel === 'Otro' ? platoOtro.trim() : platoSel
-    if (concepto === '') {
-      setMensaje('Escribe qué plato es (opción Otro).')
+    // Determinamos el concepto (producto)
+    let concepto
+    if (productoSel === 'otro') {
+      concepto = productoOtro.trim()
+      if (concepto === '') {
+        setMensaje('Escribe el nombre del producto (opción Otro).')
+        return
+      }
+    } else if (productoSel === '') {
+      setMensaje('Selecciona un producto.')
       return
+    } else {
+      const p = productos.find((x) => x.id === productoSel)
+      concepto = p ? p.nombre : ''
+      if (concepto === '') {
+        setMensaje('Producto no encontrado, vuelve a seleccionarlo.')
+        return
+      }
     }
 
     const { error: errMov } = await supabase
@@ -160,8 +242,8 @@ function App() {
     setMonto('')
     setNombreNuevo('')
     setClienteSel('')
-    setPlatoSel(PLATOS[0])
-    setPlatoOtro('')
+    setProductoSel('')
+    setProductoOtro('')
     cargarClientes()
   }
 
@@ -171,7 +253,7 @@ function App() {
     const entrada = window.prompt(
       `¿Cuánto abona ${cliente.nombre}? (L)\nDebe: L ${cliente.saldo.toFixed(2)}`
     )
-    if (entrada === null) return // el usuario canceló
+    if (entrada === null) return
 
     const montoAbono = Number(entrada)
     if (!montoAbono || montoAbono <= 0) {
@@ -195,7 +277,7 @@ function App() {
     }
 
     setMensaje(`Abono de L ${montoAbono.toFixed(2)} registrado para ${cliente.nombre}.`)
-    cargarClientes() // recargamos para actualizar el saldo
+    cargarClientes()
   }
 
   // Elimina un movimiento (fiado o abono) por su id
@@ -221,6 +303,7 @@ function App() {
   async function cerrarSesion() {
     await supabase.auth.signOut()
     setClientes([])
+    setProductos([])
     setMensaje('')
   }
 
@@ -262,6 +345,64 @@ function App() {
         </button>
       </div>
 
+      {/* Sección plegable: gestionar el catálogo de productos */}
+      <div style={{ marginTop: '1.5rem' }}>
+        <button
+          onClick={() => setMostrarProductos(!mostrarProductos)}
+          style={{ padding: '0.4rem 0.8rem', cursor: 'pointer' }}
+        >
+          {mostrarProductos ? '▲ Ocultar productos' : '⚙ Gestionar productos'}
+        </button>
+
+        {mostrarProductos && (
+          <div style={{ marginTop: '0.8rem', padding: '1rem', border: '1px solid #ccc', borderRadius: '8px' }}>
+            <h3 style={{ marginTop: 0 }}>Mis productos</h3>
+
+            {/* Formulario para agregar un producto */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.8rem', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                placeholder="Nombre del producto"
+                value={nuevoProdNombre}
+                onChange={(e) => setNuevoProdNombre(e.target.value)}
+                style={{ flex: '2 1 150px', padding: '0.5rem' }}
+              />
+              <input
+                type="number"
+                placeholder="Precio (L)"
+                value={nuevoProdPrecio}
+                onChange={(e) => setNuevoProdPrecio(e.target.value)}
+                style={{ flex: '1 1 90px', padding: '0.5rem' }}
+              />
+              <button onClick={agregarProducto} style={{ padding: '0.5rem 0.8rem', cursor: 'pointer' }}>
+                Agregar
+              </button>
+            </div>
+
+            {/* Lista de productos existentes */}
+            {productos.length === 0 && (
+              <p style={{ fontSize: '0.9rem', color: '#777' }}>
+                Aún no tienes productos. Agrega los que vendes para que aparezcan al registrar un fiado.
+              </p>
+            )}
+            <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.9rem' }}>
+              {productos.map((p) => (
+                <li key={p.id} style={{ marginBottom: '0.3rem' }}>
+                  {p.nombre} — L {Number(p.precio).toFixed(2)}
+                  <button
+                    onClick={() => eliminarProducto(p.id)}
+                    style={{ marginLeft: '0.5rem', cursor: 'pointer', color: 'red', border: 'none', background: 'none' }}
+                    title="Eliminar producto"
+                  >
+                    🗑
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
       {/* Formulario para registrar un fiado */}
       <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem', padding: '1rem', border: '1px solid #ccc', borderRadius: '8px' }}>
         <h2>Registrar fiado</h2>
@@ -289,24 +430,27 @@ function App() {
           />
         )}
 
-        <label>Plato:</label>
+        <label>Producto:</label>
         <select
-          value={platoSel}
-          onChange={(e) => setPlatoSel(e.target.value)}
+          value={productoSel}
+          onChange={(e) => seleccionarProducto(e.target.value)}
           style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem' }}
         >
-          {PLATOS.map((p) => (
-            <option key={p} value={p}>{p}</option>
+          <option value="">-- Selecciona un producto --</option>
+          {productos.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.nombre}{Number(p.precio) > 0 ? ` (L ${Number(p.precio).toFixed(2)})` : ''}
+            </option>
           ))}
-          <option value="Otro">Otro...</option>
+          <option value="otro">Otro...</option>
         </select>
 
-        {platoSel === 'Otro' && (
+        {productoSel === 'otro' && (
           <input
             type="text"
-            placeholder="Escribe el plato"
-            value={platoOtro}
-            onChange={(e) => setPlatoOtro(e.target.value)}
+            placeholder="Escribe el producto"
+            value={productoOtro}
+            onChange={(e) => setProductoOtro(e.target.value)}
             style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem' }}
           />
         )}
