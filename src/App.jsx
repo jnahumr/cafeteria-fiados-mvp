@@ -11,6 +11,12 @@ const PLATOS = [
 ]
 
 function App() {
+  // --- Estado de sesión y negocio ---
+  const [session, setSession] = useState(null)      // sesión del usuario logueado
+  const [negocioId, setNegocioId] = useState(null)  // id del negocio del usuario
+  const [cargando, setCargando] = useState(true)    // evita parpadeo del login al iniciar
+
+  // --- Estado del módulo de fiados ---
   const [clientes, setClientes] = useState([])        // clientes con saldo y movimientos
   const [clienteSel, setClienteSel] = useState('')    // cliente seleccionado en el desplegable
   const [nombreNuevo, setNombreNuevo] = useState('')  // nombre si es cliente nuevo
@@ -19,7 +25,52 @@ function App() {
   const [monto, setMonto] = useState('')              // monto del fiado
   const [mensaje, setMensaje] = useState('')          // mensaje de éxito o error
 
+  // === 1. Al iniciar: revisar si ya hay sesión y escuchar cambios ===
+  useEffect(() => {
+    // Sesión actual (si el usuario ya estaba logueado)
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+      setCargando(false)
+    })
+
+    // Escuchar login / logout para actualizar la pantalla en tiempo real
+    const { data: sub } = supabase.auth.onAuthStateChange((_evento, nuevaSesion) => {
+      setSession(nuevaSesion)
+    })
+
+    return () => sub.subscription.unsubscribe()
+  }, [])
+
+  // === 2. Cuando hay sesión: averiguar a qué negocio pertenece el usuario ===
+  useEffect(() => {
+    if (!session) {
+      setNegocioId(null)
+      return
+    }
+    async function cargarNegocio() {
+      const { data, error } = await supabase
+        .from('perfiles')
+        .select('negocio_id')
+        .eq('id', session.user.id)
+        .single()
+
+      if (error) {
+        setMensaje('Error al cargar tu negocio: ' + error.message)
+        return
+      }
+      setNegocioId(data.negocio_id)
+    }
+    cargarNegocio()
+  }, [session])
+
+  // === 3. Cuando ya sabemos el negocio: cargar sus clientes ===
+  useEffect(() => {
+    if (negocioId) cargarClientes()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [negocioId])
+
   // Carga clientes, sus movimientos y calcula saldos
+  // (RLS filtra automáticamente para mostrar solo los de MI negocio)
   async function cargarClientes() {
     const { data: listaClientes, error: errC } = await supabase
       .from('clientes')
@@ -53,10 +104,6 @@ function App() {
     setClientes(clientesConSaldo)
   }
 
-  useEffect(() => {
-    cargarClientes()
-  }, [])
-
   // Registra un nuevo fiado
   async function registrarFiado() {
     setMensaje('')
@@ -77,9 +124,10 @@ function App() {
         setMensaje('Escribe el nombre del cliente nuevo.')
         return
       }
+      // Al crear el cliente, le ponemos el negocio_id (RLS lo exige)
       const { data: nuevo, error: errNuevo } = await supabase
         .from('clientes')
-        .insert({ nombre: nombreNuevo.trim() })
+        .insert({ nombre: nombreNuevo.trim(), negocio_id: negocioId })
         .select()
         .single()
 
@@ -103,10 +151,10 @@ function App() {
       return
     }
 
-    // Insertamos el movimiento de tipo "fiado" con su concepto
+    // Insertamos el movimiento de tipo "fiado" con su concepto y el negocio_id
     const { error: errMov } = await supabase
       .from('movimientos')
-      .insert({ cliente_id: clienteId, tipo: 'fiado', monto: montoNum, concepto })
+      .insert({ cliente_id: clienteId, tipo: 'fiado', monto: montoNum, concepto, negocio_id: negocioId })
 
     if (errMov) {
       setMensaje('Error al registrar el fiado: ' + errMov.message)
@@ -143,15 +191,45 @@ function App() {
     cargarClientes()  // recargamos para actualizar saldos
   }
 
+  // Cierra la sesión del usuario
+  async function cerrarSesion() {
+    await supabase.auth.signOut()
+    setClientes([])
+    setMensaje('')
+  }
+
   // Formatea una fecha a algo legible (ej. 25/06/2026)
   function formatFecha(fechaISO) {
     const f = new Date(fechaISO)
     return f.toLocaleDateString('es-HN')
   }
 
+  // --- Mientras verifica si hay sesión, no mostramos nada aún ---
+  if (cargando) {
+    return (
+      <div style={{ padding: '2rem', fontFamily: 'sans-serif', textAlign: 'center' }}>
+        Cargando...
+      </div>
+    )
+  }
+
+  // --- Si NO hay sesión, mostramos la pantalla de login/registro ---
+  if (!session) {
+    return <Auth />
+  }
+
+  // --- Si hay sesión, mostramos la app de fiados ---
   return (
     <div style={{ padding: '2rem', fontFamily: 'sans-serif', maxWidth: '550px', margin: '0 auto' }}>
-      <h1>Control de Fiados</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1>Control de Fiados</h1>
+        <button
+          onClick={cerrarSesion}
+          style={{ padding: '0.4rem 0.8rem', cursor: 'pointer', height: 'fit-content' }}
+        >
+          Cerrar sesión
+        </button>
+      </div>
 
       {/* Formulario para registrar un fiado */}
       <div style={{ marginBottom: '1.5rem', padding: '1rem', border: '1px solid #ccc', borderRadius: '8px' }}>
@@ -247,6 +325,134 @@ function App() {
           </ul>
         </div>
       ))}
+    </div>
+  )
+}
+
+// =======================================================================
+// Componente de autenticación: login e inscripción de un negocio nuevo
+// =======================================================================
+function Auth() {
+  const [modo, setModo] = useState('login')  // 'login' o 'registro'
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [nombre, setNombre] = useState('')            // nombre de la persona (dueña)
+  const [nombreNegocio, setNombreNegocio] = useState('') // nombre del negocio (solo registro)
+  const [error, setError] = useState('')
+  const [procesando, setProcesando] = useState(false)
+
+  async function iniciarSesion() {
+    setError('')
+    setProcesando(true)
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) setError('No se pudo iniciar sesión: ' + error.message)
+    setProcesando(false)
+  }
+
+  async function registrar() {
+    setError('')
+    if (nombreNegocio.trim() === '') {
+      setError('Escribe el nombre de tu negocio.')
+      return
+    }
+    setProcesando(true)
+    // El nombre y el nombre del negocio viajan como metadata;
+    // el trigger de la base de datos crea el negocio y el perfil.
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          nombre: nombre.trim(),
+          nombre_negocio: nombreNegocio.trim(),
+        },
+      },
+    })
+    if (error) setError('No se pudo registrar: ' + error.message)
+    setProcesando(false)
+  }
+
+  return (
+    <div style={{ padding: '2rem', fontFamily: 'sans-serif', maxWidth: '400px', margin: '2rem auto' }}>
+      <h1>Control de Fiados</h1>
+      <div style={{ padding: '1.5rem', border: '1px solid #ccc', borderRadius: '8px' }}>
+        <h2>{modo === 'login' ? 'Iniciar sesión' : 'Registrar mi negocio'}</h2>
+
+        {/* Campos solo visibles en registro */}
+        {modo === 'registro' && (
+          <>
+            <label>Tu nombre:</label>
+            <input
+              type="text"
+              placeholder="Ej. María López"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem' }}
+            />
+            <label>Nombre del negocio:</label>
+            <input
+              type="text"
+              placeholder="Ej. Cafetería La Esquina"
+              value={nombreNegocio}
+              onChange={(e) => setNombreNegocio(e.target.value)}
+              style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem' }}
+            />
+          </>
+        )}
+
+        <label>Correo:</label>
+        <input
+          type="email"
+          placeholder="correo@ejemplo.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem' }}
+        />
+
+        <label>Contraseña:</label>
+        <input
+          type="password"
+          placeholder="Mínimo 6 caracteres"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={{ display: 'block', width: '100%', marginBottom: '0.8rem', padding: '0.5rem' }}
+        />
+
+        <button
+          onClick={modo === 'login' ? iniciarSesion : registrar}
+          disabled={procesando}
+          style={{ padding: '0.5rem 1rem', cursor: 'pointer', width: '100%' }}
+        >
+          {procesando ? 'Procesando...' : modo === 'login' ? 'Entrar' : 'Crear cuenta'}
+        </button>
+
+        {error && <p style={{ marginTop: '0.5rem', color: 'red' }}>{error}</p>}
+
+        {/* Cambiar entre login y registro */}
+        <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
+          {modo === 'login' ? (
+            <>
+              ¿No tienes cuenta?{' '}
+              <button
+                onClick={() => { setModo('registro'); setError('') }}
+                style={{ border: 'none', background: 'none', color: 'blue', cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                Registra tu negocio
+              </button>
+            </>
+          ) : (
+            <>
+              ¿Ya tienes cuenta?{' '}
+              <button
+                onClick={() => { setModo('login'); setError('') }}
+                style={{ border: 'none', background: 'none', color: 'blue', cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                Inicia sesión
+              </button>
+            </>
+          )}
+        </p>
+      </div>
     </div>
   )
 }
