@@ -10,7 +10,6 @@ function App() {
   const [rol, setRol] = useState('')
   const [cargando, setCargando] = useState(true)
 
-  // --- Modo recuperación: true cuando el usuario vuelve desde el link del correo ---
   const [modoRecuperacion, setModoRecuperacion] = useState(false)
 
   // --- Estado del módulo de créditos ---
@@ -18,17 +17,20 @@ function App() {
   const [productos, setProductos] = useState([])
   const [clienteSel, setClienteSel] = useState('')
   const [nombreNuevo, setNombreNuevo] = useState('')
-  const [productoSel, setProductoSel] = useState('')
-  const [productoOtro, setProductoOtro] = useState('')
-  const [monto, setMonto] = useState('')
   const [mensaje, setMensaje] = useState('')
+
+  // --- Estado del carrito ---
+  const [carrito, setCarrito] = useState([])          // líneas: {nombre, precio, cantidad}
+  const [productoSel, setProductoSel] = useState('')  // producto elegido para agregar (id) o 'otro'
+  const [productoOtro, setProductoOtro] = useState('')// nombre libre si es "Otro"
+  const [precioOtro, setPrecioOtro] = useState('')    // precio si es "Otro"
 
   // --- Estado para gestionar el catálogo de productos ---
   const [mostrarProductos, setMostrarProductos] = useState(false)
   const [nuevoProdNombre, setNuevoProdNombre] = useState('')
   const [nuevoProdPrecio, setNuevoProdPrecio] = useState('')
 
-  // === 1. Al iniciar: revisar sesión y escuchar cambios de autenticación ===
+  // === 1. Al iniciar: revisar sesión y escuchar cambios ===
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
@@ -93,10 +95,10 @@ function App() {
       return
     }
 
-    // Traemos los movimientos con el nombre de quien los registró (join a perfiles)
+    // Movimientos con autor y con su detalle de productos (join anidado)
     const { data: movimientos, error: errM } = await supabase
       .from('movimientos')
-      .select('*, perfiles(nombre)')
+      .select('*, perfiles(nombre), movimiento_detalle(producto_nombre, cantidad, precio_unitario)')
       .order('fecha', { ascending: false })
 
     if (errM) {
@@ -128,15 +130,73 @@ function App() {
     setProductos(data)
   }
 
-  function seleccionarProducto(valor) {
-    setProductoSel(valor)
-    if (valor && valor !== 'otro') {
-      const p = productos.find((x) => x.id === valor)
-      if (p && Number(p.precio) > 0) {
-        setMonto(String(Number(p.precio)))
+  // --- CARRITO ---
+
+  // Agrega el producto seleccionado al carrito
+  function agregarAlCarrito() {
+    setMensaje('')
+    let nombre, precio
+
+    if (productoSel === 'otro') {
+      nombre = productoOtro.trim()
+      precio = Number(precioOtro) || 0
+      if (nombre === '') {
+        setMensaje('Escribe el nombre del producto (opción Otro).')
+        return
       }
+    } else if (productoSel === '') {
+      setMensaje('Selecciona un producto para agregar.')
+      return
+    } else {
+      const p = productos.find((x) => x.id === productoSel)
+      if (!p) {
+        setMensaje('Producto no encontrado.')
+        return
+      }
+      nombre = p.nombre
+      precio = Number(p.precio) || 0
     }
+
+    // Si el producto ya está en el carrito, sumamos cantidad; si no, lo agregamos
+    setCarrito((actual) => {
+      const idx = actual.findIndex(
+        (l) => l.nombre.toLowerCase() === nombre.toLowerCase() && l.precio === precio
+      )
+      if (idx >= 0) {
+        const copia = [...actual]
+        copia[idx] = { ...copia[idx], cantidad: copia[idx].cantidad + 1 }
+        return copia
+      }
+      return [...actual, { nombre, precio, cantidad: 1 }]
+    })
+
+    // Limpiamos el selector para el próximo producto
+    setProductoSel('')
+    setProductoOtro('')
+    setPrecioOtro('')
   }
+
+  // Cambia la cantidad de una línea (delta = +1 o -1)
+  function cambiarCantidad(indice, delta) {
+    setCarrito((actual) => {
+      const copia = [...actual]
+      const nuevaCant = copia[indice].cantidad + delta
+      if (nuevaCant <= 0) {
+        copia.splice(indice, 1) // si llega a 0, se quita la línea
+      } else {
+        copia[indice] = { ...copia[indice], cantidad: nuevaCant }
+      }
+      return copia
+    })
+  }
+
+  // Quita una línea del carrito
+  function quitarDelCarrito(indice) {
+    setCarrito((actual) => actual.filter((_, i) => i !== indice))
+  }
+
+  // Total del carrito
+  const totalCarrito = carrito.reduce((s, l) => s + l.precio * l.cantidad, 0)
 
   function copiarCodigo() {
     navigator.clipboard.writeText(codigoInvitacion)
@@ -186,15 +246,16 @@ function App() {
     cargarProductos()
   }
 
+  // Registra un fiado con todo su carrito (cabecera + detalle)
   async function registrarFiado() {
     setMensaje('')
 
-    const montoNum = Number(monto)
-    if (!montoNum || montoNum <= 0) {
-      setMensaje('El monto debe ser un número mayor que cero.')
+    if (carrito.length === 0) {
+      setMensaje('Agrega al menos un producto al carrito.')
       return
     }
 
+    // Resolver el cliente (existente o nuevo con anti-duplicados)
     let clienteId
 
     if (clienteSel === 'nuevo') {
@@ -203,17 +264,11 @@ function App() {
         setMensaje('Escribe el nombre del cliente nuevo.')
         return
       }
-
-      // Anti-duplicados: ¿ya existe un cliente con ese nombre en este negocio?
-      // (comparación sin distinguir mayúsculas/minúsculas ni espacios extra)
       const yaExiste = clientes.find(
         (c) => c.nombre.trim().toLowerCase() === nombreLimpio.toLowerCase()
       )
-
       if (yaExiste) {
-        // En vez de crear un duplicado, usamos el cliente existente
         clienteId = yaExiste.id
-        setMensaje(`Ya existía "${yaExiste.nombre}", se usó ese cliente.`)
       } else {
         const { data: nuevo, error: errNuevo } = await supabase
           .from('clientes')
@@ -222,7 +277,6 @@ function App() {
           .single()
 
         if (errNuevo) {
-          // Si la base rechaza por el UNIQUE (carrera entre dos usuarios), avisamos claro
           if (errNuevo.code === '23505') {
             setMensaje('Ya existe un cliente con ese nombre. Selecciónalo de la lista.')
           } else {
@@ -239,41 +293,54 @@ function App() {
       clienteId = Number(clienteSel)
     }
 
-    let concepto
-    if (productoSel === 'otro') {
-      concepto = productoOtro.trim()
-      if (concepto === '') {
-        setMensaje('Escribe el nombre del producto (opción Otro).')
-        return
-      }
-    } else if (productoSel === '') {
-      setMensaje('Selecciona un producto.')
-      return
-    } else {
-      const p = productos.find((x) => x.id === productoSel)
-      concepto = p ? p.nombre : ''
-      if (concepto === '') {
-        setMensaje('Producto no encontrado, vuelve a seleccionarlo.')
-        return
-      }
-    }
+    // Concepto resumen para la cabecera (ej. "2x Pepsi, 1x Galleta")
+    const conceptoResumen = carrito
+      .map((l) => `${l.cantidad}x ${l.nombre}`)
+      .join(', ')
 
-    // registrado_por lo pone la base automáticamente (DEFAULT auth.uid())
-    const { error: errMov } = await supabase
+    // 1) Insertar la cabecera del fiado con el total
+    const { data: mov, error: errMov } = await supabase
       .from('movimientos')
-      .insert({ cliente_id: clienteId, tipo: 'fiado', monto: montoNum, concepto, negocio_id: negocioId })
+      .insert({
+        cliente_id: clienteId,
+        tipo: 'fiado',
+        monto: totalCarrito,
+        concepto: conceptoResumen,
+        negocio_id: negocioId,
+      })
+      .select()
+      .single()
 
     if (errMov) {
       setMensaje('Error al registrar el fiado: ' + errMov.message)
       return
     }
 
-    setMensaje((m) => m || 'Fiado registrado correctamente.')
-    setMonto('')
+    // 2) Insertar las líneas de detalle ligadas a esa cabecera
+    const lineas = carrito.map((l) => ({
+      movimiento_id: mov.id,
+      negocio_id: negocioId,
+      producto_nombre: l.nombre,
+      cantidad: l.cantidad,
+      precio_unitario: l.precio,
+    }))
+
+    const { error: errDet } = await supabase
+      .from('movimiento_detalle')
+      .insert(lineas)
+
+    if (errDet) {
+      setMensaje('El fiado se guardó, pero hubo un error con el detalle: ' + errDet.message)
+      return
+    }
+
+    setMensaje('Fiado registrado correctamente.')
+    setCarrito([])
     setNombreNuevo('')
     setClienteSel('')
     setProductoSel('')
     setProductoOtro('')
+    setPrecioOtro('')
     cargarClientes()
   }
 
@@ -313,6 +380,7 @@ function App() {
     const confirmar = window.confirm('¿Seguro que deseas eliminar este movimiento?')
     if (!confirmar) return
 
+    // Al borrar el movimiento, su detalle se borra solo (ON DELETE CASCADE)
     const { error } = await supabase
       .from('movimientos')
       .delete()
@@ -331,15 +399,20 @@ function App() {
     await supabase.auth.signOut()
     setClientes([])
     setProductos([])
+    setCarrito([])
     setMensaje('')
   }
 
+  // Fecha y hora en zona horaria de Honduras (UTC-6)
   function formatFecha(fechaISO) {
     const f = new Date(fechaISO)
-    return f.toLocaleDateString('es-HN')
+    return f.toLocaleString('es-HN', {
+      timeZone: 'America/Tegucigalpa',
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    })
   }
 
-  // --- Mientras verifica si hay sesión, no mostramos nada aún ---
   if (cargando) {
     return (
       <div style={{ padding: '2rem', fontFamily: 'sans-serif', textAlign: 'center' }}>
@@ -348,17 +421,14 @@ function App() {
     )
   }
 
-  // --- Si el usuario volvió desde el correo de recuperación ---
   if (modoRecuperacion) {
     return <NuevaPassword onListo={() => setModoRecuperacion(false)} />
   }
 
-  // --- Si NO hay sesión ---
   if (!session) {
     return <Auth />
   }
 
-  // --- Si hay sesión, mostramos la app de créditos ---
   return (
     <div style={{ padding: '2rem', fontFamily: 'sans-serif', maxWidth: '550px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -379,7 +449,6 @@ function App() {
         </button>
       </div>
 
-      {/* Código de invitación: solo lo ve la dueña */}
       {rol === 'duena' && codigoInvitacion && (
         <div style={{ marginTop: '1rem', padding: '0.7rem 1rem', background: '#f0f4ff', border: '1px solid #b0c4ff', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
           <span style={{ fontSize: '0.9rem' }}>
@@ -447,7 +516,7 @@ function App() {
         )}
       </div>
 
-      {/* Formulario para registrar un fiado */}
+      {/* Formulario para registrar un fiado con carrito */}
       <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem', padding: '1rem', border: '1px solid #ccc', borderRadius: '8px' }}>
         <h2>Registrar fiado</h2>
 
@@ -474,41 +543,78 @@ function App() {
           />
         )}
 
-        <label>Producto:</label>
-        <select
-          value={productoSel}
-          onChange={(e) => seleccionarProducto(e.target.value)}
-          style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem' }}
-        >
-          <option value="">-- Selecciona un producto --</option>
-          {productos.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nombre}{Number(p.precio) > 0 ? ` (L ${Number(p.precio).toFixed(2)})` : ''}
-            </option>
-          ))}
-          <option value="otro">Otro...</option>
-        </select>
+        {/* Selector de producto + botón agregar */}
+        <label>Agregar producto:</label>
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+          <select
+            value={productoSel}
+            onChange={(e) => setProductoSel(e.target.value)}
+            style={{ flex: '1 1 200px', padding: '0.5rem' }}
+          >
+            <option value="">-- Selecciona un producto --</option>
+            {productos.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nombre}{Number(p.precio) > 0 ? ` (L ${Number(p.precio).toFixed(2)})` : ''}
+              </option>
+            ))}
+            <option value="otro">Otro...</option>
+          </select>
+          <button onClick={agregarAlCarrito} style={{ padding: '0.5rem 0.9rem', cursor: 'pointer' }}>
+            + Agregar
+          </button>
+        </div>
 
+        {/* Campos de "Otro": nombre y precio manual */}
         {productoSel === 'otro' && (
-          <input
-            type="text"
-            placeholder="Escribe el producto"
-            value={productoOtro}
-            onChange={(e) => setProductoOtro(e.target.value)}
-            style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem' }}
-          />
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+            <input
+              type="text"
+              placeholder="Nombre del producto"
+              value={productoOtro}
+              onChange={(e) => setProductoOtro(e.target.value)}
+              style={{ flex: '2 1 150px', padding: '0.5rem' }}
+            />
+            <input
+              type="number"
+              placeholder="Precio (L)"
+              value={precioOtro}
+              onChange={(e) => setPrecioOtro(e.target.value)}
+              style={{ flex: '1 1 90px', padding: '0.5rem' }}
+            />
+          </div>
         )}
 
-        <label>Monto (L):</label>
-        <input
-          type="number"
-          placeholder="Monto"
-          value={monto}
-          onChange={(e) => setMonto(e.target.value)}
-          style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem' }}
-        />
+        {/* El carrito */}
+        {carrito.length > 0 && (
+          <div style={{ margin: '0.8rem 0', padding: '0.6rem 0.8rem', background: '#fafafa', border: '1px solid #ddd', borderRadius: '8px' }}>
+            <strong style={{ fontSize: '0.9rem' }}>Productos de este fiado:</strong>
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0.5rem 0 0' }}>
+              {carrito.map((l, i) => (
+                <li key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', fontSize: '0.9rem' }}>
+                  <span style={{ flex: 1 }}>{l.nombre} — L {l.precio.toFixed(2)}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <button onClick={() => cambiarCantidad(i, -1)} style={{ cursor: 'pointer', width: '26px', height: '26px' }}>−</button>
+                    <span style={{ minWidth: '20px', textAlign: 'center' }}>{l.cantidad}</span>
+                    <button onClick={() => cambiarCantidad(i, +1)} style={{ cursor: 'pointer', width: '26px', height: '26px' }}>+</button>
+                    <span style={{ minWidth: '70px', textAlign: 'right' }}>L {(l.precio * l.cantidad).toFixed(2)}</span>
+                    <button
+                      onClick={() => quitarDelCarrito(i)}
+                      style={{ cursor: 'pointer', color: 'red', border: 'none', background: 'none' }}
+                      title="Quitar"
+                    >
+                      🗑
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div style={{ textAlign: 'right', fontWeight: 'bold', marginTop: '0.4rem', borderTop: '1px solid #ddd', paddingTop: '0.4rem' }}>
+              Total: L {totalCarrito.toFixed(2)}
+            </div>
+          </div>
+        )}
 
-        <button onClick={registrarFiado} style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}>
+        <button onClick={registrarFiado} style={{ padding: '0.5rem 1rem', cursor: 'pointer', fontWeight: 'bold' }}>
           Guardar fiado
         </button>
         {mensaje && <p style={{ marginTop: '0.5rem' }}>{mensaje}</p>}
@@ -533,7 +639,7 @@ function App() {
           </div>
           <ul style={{ marginTop: '0.4rem', fontSize: '0.9rem' }}>
             {c.movimientos.map((m) => (
-              <li key={m.id} style={{ marginBottom: '0.3rem' }}>
+              <li key={m.id} style={{ marginBottom: '0.4rem' }}>
                 {formatFecha(m.fecha)} — {m.tipo === 'fiado' ? 'Fiado' : 'Abono'}: L {Number(m.monto).toFixed(2)}
                 {m.concepto ? ` (${m.concepto})` : ''}
                 {m.perfiles?.nombre && (
@@ -546,6 +652,16 @@ function App() {
                 >
                   🗑
                 </button>
+                {/* Desglose de productos, si el fiado tiene detalle */}
+                {m.movimiento_detalle && m.movimiento_detalle.length > 0 && (
+                  <ul style={{ margin: '0.2rem 0 0', paddingLeft: '1.2rem', color: '#666', fontSize: '0.85rem' }}>
+                    {m.movimiento_detalle.map((d, i) => (
+                      <li key={i}>
+                        {d.cantidad}x {d.producto_nombre} — L {Number(d.precio_unitario).toFixed(2)} c/u
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ul>
@@ -556,7 +672,7 @@ function App() {
 }
 
 // =======================================================================
-// Componente de autenticación: login, crear negocio, unirse o recuperar
+// Componente de autenticación
 // =======================================================================
 function Auth() {
   const [modo, setModo] = useState('login')
@@ -784,7 +900,7 @@ function Auth() {
 }
 
 // =======================================================================
-// Pantalla para escribir la nueva contraseña (al volver desde el correo)
+// Pantalla para escribir la nueva contraseña
 // =======================================================================
 function NuevaPassword({ onListo }) {
   const [password, setPassword] = useState('')
