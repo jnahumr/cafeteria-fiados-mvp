@@ -15,20 +15,24 @@ function App() {
   // --- Estado del módulo de créditos ---
   const [clientes, setClientes] = useState([])
   const [productos, setProductos] = useState([])
+  const [eliminados, setEliminados] = useState([]) // movimientos borrados (auditoría)
   const [clienteSel, setClienteSel] = useState('')
   const [nombreNuevo, setNombreNuevo] = useState('')
   const [mensaje, setMensaje] = useState('')
 
   // --- Estado del carrito ---
-  const [carrito, setCarrito] = useState([])          // líneas: {nombre, precio, cantidad}
-  const [productoSel, setProductoSel] = useState('')  // producto elegido para agregar (id) o 'otro'
-  const [productoOtro, setProductoOtro] = useState('')// nombre libre si es "Otro"
-  const [precioOtro, setPrecioOtro] = useState('')    // precio si es "Otro"
+  const [carrito, setCarrito] = useState([])
+  const [productoSel, setProductoSel] = useState('')
+  const [productoOtro, setProductoOtro] = useState('')
+  const [precioOtro, setPrecioOtro] = useState('')
 
   // --- Estado para gestionar el catálogo de productos ---
   const [mostrarProductos, setMostrarProductos] = useState(false)
   const [nuevoProdNombre, setNuevoProdNombre] = useState('')
   const [nuevoProdPrecio, setNuevoProdPrecio] = useState('')
+
+  // --- Auditoría de eliminados (solo dueña) ---
+  const [mostrarEliminados, setMostrarEliminados] = useState(false)
 
   // === 1. Al iniciar: revisar sesión y escuchar cambios ===
   useEffect(() => {
@@ -95,10 +99,10 @@ function App() {
       return
     }
 
-    // Movimientos con autor y con su detalle de productos (join anidado)
+    // Traemos TODOS los movimientos (con autor, detalle, y quién eliminó)
     const { data: movimientos, error: errM } = await supabase
       .from('movimientos')
-      .select('*, perfiles(nombre), movimiento_detalle(producto_nombre, cantidad, precio_unitario)')
+      .select('*, perfiles!movimientos_registrado_por_fkey(nombre), eliminador:perfiles!movimientos_eliminado_por_fkey(nombre), movimiento_detalle(producto_nombre, cantidad, precio_unitario)')
       .order('fecha', { ascending: false })
 
     if (errM) {
@@ -106,8 +110,11 @@ function App() {
       return
     }
 
+    // Solo los ACTIVOS (sin fecha de eliminación) cuentan para saldo y listado
+    const activos = movimientos.filter((m) => !m.eliminado_en)
+
     const clientesConSaldo = listaClientes.map((cliente) => {
-      const susMovimientos = movimientos.filter((m) => m.cliente_id === cliente.id)
+      const susMovimientos = activos.filter((m) => m.cliente_id === cliente.id)
       const saldo = susMovimientos.reduce((total, m) => {
         return m.tipo === 'fiado' ? total + Number(m.monto) : total - Number(m.monto)
       }, 0)
@@ -115,6 +122,15 @@ function App() {
     })
 
     setClientes(clientesConSaldo)
+
+    // Los eliminados quedan aparte para la sección de auditoría
+    const borrados = movimientos.filter((m) => m.eliminado_en)
+    // Añadimos el nombre del cliente a cada eliminado, para mostrarlo
+    const borradosConCliente = borrados.map((m) => {
+      const cli = listaClientes.find((c) => c.id === m.cliente_id)
+      return { ...m, nombreCliente: cli ? cli.nombre : '(cliente desconocido)' }
+    })
+    setEliminados(borradosConCliente)
   }
 
   async function cargarProductos() {
@@ -131,8 +147,6 @@ function App() {
   }
 
   // --- CARRITO ---
-
-  // Agrega el producto seleccionado al carrito
   function agregarAlCarrito() {
     setMensaje('')
     let nombre, precio
@@ -157,7 +171,6 @@ function App() {
       precio = Number(p.precio) || 0
     }
 
-    // Si el producto ya está en el carrito, sumamos cantidad; si no, lo agregamos
     setCarrito((actual) => {
       const idx = actual.findIndex(
         (l) => l.nombre.toLowerCase() === nombre.toLowerCase() && l.precio === precio
@@ -170,19 +183,17 @@ function App() {
       return [...actual, { nombre, precio, cantidad: 1 }]
     })
 
-    // Limpiamos el selector para el próximo producto
     setProductoSel('')
     setProductoOtro('')
     setPrecioOtro('')
   }
 
-  // Cambia la cantidad de una línea (delta = +1 o -1)
   function cambiarCantidad(indice, delta) {
     setCarrito((actual) => {
       const copia = [...actual]
       const nuevaCant = copia[indice].cantidad + delta
       if (nuevaCant <= 0) {
-        copia.splice(indice, 1) // si llega a 0, se quita la línea
+        copia.splice(indice, 1)
       } else {
         copia[indice] = { ...copia[indice], cantidad: nuevaCant }
       }
@@ -190,12 +201,10 @@ function App() {
     })
   }
 
-  // Quita una línea del carrito
   function quitarDelCarrito(indice) {
     setCarrito((actual) => actual.filter((_, i) => i !== indice))
   }
 
-  // Total del carrito
   const totalCarrito = carrito.reduce((s, l) => s + l.precio * l.cantidad, 0)
 
   function copiarCodigo() {
@@ -246,7 +255,6 @@ function App() {
     cargarProductos()
   }
 
-  // Registra un fiado con todo su carrito (cabecera + detalle)
   async function registrarFiado() {
     setMensaje('')
 
@@ -255,7 +263,6 @@ function App() {
       return
     }
 
-    // Resolver el cliente (existente o nuevo con anti-duplicados)
     let clienteId
 
     if (clienteSel === 'nuevo') {
@@ -293,12 +300,10 @@ function App() {
       clienteId = Number(clienteSel)
     }
 
-    // Concepto resumen para la cabecera (ej. "2x Pepsi, 1x Galleta")
     const conceptoResumen = carrito
       .map((l) => `${l.cantidad}x ${l.nombre}`)
       .join(', ')
 
-    // 1) Insertar la cabecera del fiado con el total
     const { data: mov, error: errMov } = await supabase
       .from('movimientos')
       .insert({
@@ -316,7 +321,6 @@ function App() {
       return
     }
 
-    // 2) Insertar las líneas de detalle ligadas a esa cabecera
     const lineas = carrito.map((l) => ({
       movimiento_id: mov.id,
       negocio_id: negocioId,
@@ -376,14 +380,18 @@ function App() {
     cargarClientes()
   }
 
+  // Borrado lógico (soft delete): marca el movimiento en vez de eliminarlo
   async function eliminarMovimiento(idMovimiento) {
     const confirmar = window.confirm('¿Seguro que deseas eliminar este movimiento?')
     if (!confirmar) return
 
-    // Al borrar el movimiento, su detalle se borra solo (ON DELETE CASCADE)
+    // En vez de DELETE, hacemos UPDATE guardando quién y cuándo
     const { error } = await supabase
       .from('movimientos')
-      .delete()
+      .update({
+        eliminado_en: new Date().toISOString(),
+        eliminado_por: session.user.id,
+      })
       .eq('id', idMovimiento)
 
     if (error) {
@@ -399,11 +407,11 @@ function App() {
     await supabase.auth.signOut()
     setClientes([])
     setProductos([])
+    setEliminados([])
     setCarrito([])
     setMensaje('')
   }
 
-  // Fecha y hora en zona horaria de Honduras (UTC-6)
   function formatFecha(fechaISO) {
     const f = new Date(fechaISO)
     return f.toLocaleString('es-HN', {
@@ -543,7 +551,6 @@ function App() {
           />
         )}
 
-        {/* Selector de producto + botón agregar */}
         <label>Agregar producto:</label>
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
           <select
@@ -564,7 +571,6 @@ function App() {
           </button>
         </div>
 
-        {/* Campos de "Otro": nombre y precio manual */}
         {productoSel === 'otro' && (
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
             <input
@@ -584,7 +590,6 @@ function App() {
           </div>
         )}
 
-        {/* El carrito */}
         {carrito.length > 0 && (
           <div style={{ margin: '0.8rem 0', padding: '0.6rem 0.8rem', background: '#fafafa', border: '1px solid #ddd', borderRadius: '8px' }}>
             <strong style={{ fontSize: '0.9rem' }}>Productos de este fiado:</strong>
@@ -652,7 +657,6 @@ function App() {
                 >
                   🗑
                 </button>
-                {/* Desglose de productos, si el fiado tiene detalle */}
                 {m.movimiento_detalle && m.movimiento_detalle.length > 0 && (
                   <ul style={{ margin: '0.2rem 0 0', paddingLeft: '1.2rem', color: '#666', fontSize: '0.85rem' }}>
                     {m.movimiento_detalle.map((d, i) => (
@@ -667,6 +671,40 @@ function App() {
           </ul>
         </div>
       ))}
+
+      {/* Auditoría: movimientos eliminados (solo la dueña) */}
+      {rol === 'duena' && (
+        <div style={{ marginTop: '2rem' }}>
+          <button
+            onClick={() => setMostrarEliminados(!mostrarEliminados)}
+            style={{ padding: '0.4rem 0.8rem', cursor: 'pointer' }}
+          >
+            {mostrarEliminados ? '▲ Ocultar eliminados' : `🗑 Movimientos eliminados (${eliminados.length})`}
+          </button>
+
+          {mostrarEliminados && (
+            <div style={{ marginTop: '0.8rem', padding: '1rem', border: '1px solid #f0c0c0', borderRadius: '8px', background: '#fdf7f7' }}>
+              <h3 style={{ marginTop: 0 }}>Registro de eliminados</h3>
+              {eliminados.length === 0 && (
+                <p style={{ fontSize: '0.9rem', color: '#777' }}>No se ha eliminado ningún movimiento.</p>
+              )}
+              <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.85rem', color: '#555' }}>
+                {eliminados.map((m) => (
+                  <li key={m.id} style={{ marginBottom: '0.5rem' }}>
+                    <strong>{m.nombreCliente}</strong> — {m.tipo === 'fiado' ? 'Fiado' : 'Abono'}: L {Number(m.monto).toFixed(2)}
+                    {m.concepto ? ` (${m.concepto})` : ''}
+                    <br />
+                    <span style={{ color: '#a33' }}>
+                      Eliminado el {formatFecha(m.eliminado_en)}
+                      {m.eliminador?.nombre ? ` por ${m.eliminador.nombre}` : ''}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
