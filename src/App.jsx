@@ -37,8 +37,6 @@ function App() {
 
     const { data: sub } = supabase.auth.onAuthStateChange((evento, nuevaSesion) => {
       setSession(nuevaSesion)
-      // Cuando el usuario llega desde el correo de recuperación,
-      // Supabase dispara este evento: mostramos la pantalla de nueva contraseña.
       if (evento === 'PASSWORD_RECOVERY') {
         setModoRecuperacion(true)
       }
@@ -95,9 +93,10 @@ function App() {
       return
     }
 
+    // Traemos los movimientos con el nombre de quien los registró (join a perfiles)
     const { data: movimientos, error: errM } = await supabase
       .from('movimientos')
-      .select('*')
+      .select('*, perfiles(nombre)')
       .order('fecha', { ascending: false })
 
     if (errM) {
@@ -199,21 +198,40 @@ function App() {
     let clienteId
 
     if (clienteSel === 'nuevo') {
-      if (nombreNuevo.trim() === '') {
+      const nombreLimpio = nombreNuevo.trim()
+      if (nombreLimpio === '') {
         setMensaje('Escribe el nombre del cliente nuevo.')
         return
       }
-      const { data: nuevo, error: errNuevo } = await supabase
-        .from('clientes')
-        .insert({ nombre: nombreNuevo.trim(), negocio_id: negocioId })
-        .select()
-        .single()
 
-      if (errNuevo) {
-        setMensaje('Error al crear cliente: ' + errNuevo.message)
-        return
+      // Anti-duplicados: ¿ya existe un cliente con ese nombre en este negocio?
+      // (comparación sin distinguir mayúsculas/minúsculas ni espacios extra)
+      const yaExiste = clientes.find(
+        (c) => c.nombre.trim().toLowerCase() === nombreLimpio.toLowerCase()
+      )
+
+      if (yaExiste) {
+        // En vez de crear un duplicado, usamos el cliente existente
+        clienteId = yaExiste.id
+        setMensaje(`Ya existía "${yaExiste.nombre}", se usó ese cliente.`)
+      } else {
+        const { data: nuevo, error: errNuevo } = await supabase
+          .from('clientes')
+          .insert({ nombre: nombreLimpio, negocio_id: negocioId })
+          .select()
+          .single()
+
+        if (errNuevo) {
+          // Si la base rechaza por el UNIQUE (carrera entre dos usuarios), avisamos claro
+          if (errNuevo.code === '23505') {
+            setMensaje('Ya existe un cliente con ese nombre. Selecciónalo de la lista.')
+          } else {
+            setMensaje('Error al crear cliente: ' + errNuevo.message)
+          }
+          return
+        }
+        clienteId = nuevo.id
       }
-      clienteId = nuevo.id
     } else if (clienteSel === '') {
       setMensaje('Selecciona un cliente o agrega uno nuevo.')
       return
@@ -240,6 +258,7 @@ function App() {
       }
     }
 
+    // registrado_por lo pone la base automáticamente (DEFAULT auth.uid())
     const { error: errMov } = await supabase
       .from('movimientos')
       .insert({ cliente_id: clienteId, tipo: 'fiado', monto: montoNum, concepto, negocio_id: negocioId })
@@ -249,7 +268,7 @@ function App() {
       return
     }
 
-    setMensaje('Fiado registrado correctamente.')
+    setMensaje((m) => m || 'Fiado registrado correctamente.')
     setMonto('')
     setNombreNuevo('')
     setClienteSel('')
@@ -329,12 +348,12 @@ function App() {
     )
   }
 
-  // --- Si el usuario volvió desde el correo de recuperación: pantalla de nueva contraseña ---
+  // --- Si el usuario volvió desde el correo de recuperación ---
   if (modoRecuperacion) {
     return <NuevaPassword onListo={() => setModoRecuperacion(false)} />
   }
 
-  // --- Si NO hay sesión, mostramos la pantalla de login/registro ---
+  // --- Si NO hay sesión ---
   if (!session) {
     return <Auth />
   }
@@ -517,6 +536,9 @@ function App() {
               <li key={m.id} style={{ marginBottom: '0.3rem' }}>
                 {formatFecha(m.fecha)} — {m.tipo === 'fiado' ? 'Fiado' : 'Abono'}: L {Number(m.monto).toFixed(2)}
                 {m.concepto ? ` (${m.concepto})` : ''}
+                {m.perfiles?.nombre && (
+                  <span style={{ color: '#888' }}> · por {m.perfiles.nombre}</span>
+                )}
                 <button
                   onClick={() => eliminarMovimiento(m.id)}
                   style={{ marginLeft: '0.5rem', cursor: 'pointer', color: 'red', border: 'none', background: 'none' }}
@@ -537,7 +559,6 @@ function App() {
 // Componente de autenticación: login, crear negocio, unirse o recuperar
 // =======================================================================
 function Auth() {
-  // 'login' | 'crear' | 'unir' | 'recuperar'
   const [modo, setModo] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -588,7 +609,6 @@ function Auth() {
     setProcesando(false)
   }
 
-  // Envía el correo con el link para restablecer la contraseña
   async function enviarRecuperacion() {
     setError(''); setAviso('')
     if (email.trim() === '') {
@@ -633,7 +653,6 @@ function Auth() {
       <div style={{ padding: '1.5rem', border: '1px solid #ccc', borderRadius: '8px' }}>
         <h2>{titulo}</h2>
 
-        {/* Nombre de la persona: en crear y unir */}
         {(modo === 'crear' || modo === 'unir') && (
           <>
             <label>Tu nombre:</label>
@@ -647,7 +666,6 @@ function Auth() {
           </>
         )}
 
-        {/* Nombre del negocio: solo al crear */}
         {modo === 'crear' && (
           <>
             <label>Nombre del negocio:</label>
@@ -661,7 +679,6 @@ function Auth() {
           </>
         )}
 
-        {/* Código de invitación: solo al unirse */}
         {modo === 'unir' && (
           <>
             <label>Código de invitación:</label>
@@ -685,7 +702,6 @@ function Auth() {
           style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem' }}
         />
 
-        {/* Contraseña: en todos los modos menos recuperar */}
         {modo !== 'recuperar' && (
           <>
             <label>Contraseña:</label>
@@ -697,7 +713,6 @@ function Auth() {
               onChange={(e) => setPassword(e.target.value)}
               style={{ display: 'block', width: '100%', marginBottom: '0.3rem', padding: '0.5rem' }}
             />
-            {/* Enlace de olvidé contraseña: solo en login */}
             {modo === 'login' && (
               <div style={{ textAlign: 'right', marginBottom: '0.6rem' }}>
                 <button
@@ -728,7 +743,6 @@ function Auth() {
         {error && <p style={{ marginTop: '0.5rem', color: 'red' }}>{error}</p>}
         {aviso && <p style={{ marginTop: '0.5rem', color: '#2e7d32' }}>{aviso}</p>}
 
-        {/* Enlaces para cambiar de modo */}
         <div style={{ marginTop: '1rem', fontSize: '0.9rem', lineHeight: '1.8' }}>
           {modo !== 'login' && (
             <div>
@@ -798,7 +812,6 @@ function NuevaPassword({ onListo }) {
     }
     setAviso('¡Contraseña actualizada! Ya puedes usar la app.')
     setProcesando(false)
-    // Tras un momento, salimos del modo recuperación y entramos con la sesión ya activa
     setTimeout(() => onListo(), 1500)
   }
 
