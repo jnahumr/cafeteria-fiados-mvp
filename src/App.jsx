@@ -3,43 +3,51 @@ import { supabase } from './supabaseClient'
 
 function App() {
   // --- Estado de sesión y negocio ---
-  const [session, setSession] = useState(null)          // sesión del usuario logueado
-  const [negocioId, setNegocioId] = useState(null)      // id del negocio del usuario
-  const [nombreNegocio, setNombreNegocio] = useState('')// nombre del negocio (para el header)
-  const [codigoInvitacion, setCodigoInvitacion] = useState('') // código (solo lo usa la dueña)
-  const [rol, setRol] = useState('')                    // 'duena' o 'empleado'
-  const [cargando, setCargando] = useState(true)        // evita parpadeo del login al iniciar
+  const [session, setSession] = useState(null)
+  const [negocioId, setNegocioId] = useState(null)
+  const [nombreNegocio, setNombreNegocio] = useState('')
+  const [codigoInvitacion, setCodigoInvitacion] = useState('')
+  const [rol, setRol] = useState('')
+  const [cargando, setCargando] = useState(true)
+
+  // --- Modo recuperación: true cuando el usuario vuelve desde el link del correo ---
+  const [modoRecuperacion, setModoRecuperacion] = useState(false)
 
   // --- Estado del módulo de créditos ---
-  const [clientes, setClientes] = useState([])        // clientes con saldo y movimientos
-  const [productos, setProductos] = useState([])      // catálogo de productos del negocio
-  const [clienteSel, setClienteSel] = useState('')    // cliente seleccionado en el desplegable
-  const [nombreNuevo, setNombreNuevo] = useState('')  // nombre si es cliente nuevo
-  const [productoSel, setProductoSel] = useState('')  // producto seleccionado (id) o 'otro'
-  const [productoOtro, setProductoOtro] = useState('')// texto si elige "Otro"
-  const [monto, setMonto] = useState('')              // monto del fiado
-  const [mensaje, setMensaje] = useState('')          // mensaje de éxito o error
+  const [clientes, setClientes] = useState([])
+  const [productos, setProductos] = useState([])
+  const [clienteSel, setClienteSel] = useState('')
+  const [nombreNuevo, setNombreNuevo] = useState('')
+  const [productoSel, setProductoSel] = useState('')
+  const [productoOtro, setProductoOtro] = useState('')
+  const [monto, setMonto] = useState('')
+  const [mensaje, setMensaje] = useState('')
 
   // --- Estado para gestionar el catálogo de productos ---
   const [mostrarProductos, setMostrarProductos] = useState(false)
   const [nuevoProdNombre, setNuevoProdNombre] = useState('')
   const [nuevoProdPrecio, setNuevoProdPrecio] = useState('')
 
-  // === 1. Al iniciar: revisar si ya hay sesión y escuchar cambios ===
+  // === 1. Al iniciar: revisar sesión y escuchar cambios de autenticación ===
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
       setCargando(false)
     })
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_evento, nuevaSesion) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((evento, nuevaSesion) => {
       setSession(nuevaSesion)
+      // Cuando el usuario llega desde el correo de recuperación,
+      // Supabase dispara este evento: mostramos la pantalla de nueva contraseña.
+      if (evento === 'PASSWORD_RECOVERY') {
+        setModoRecuperacion(true)
+      }
     })
 
     return () => sub.subscription.unsubscribe()
   }, [])
 
-  // === 2. Cuando hay sesión: averiguar el negocio, rol y código del usuario ===
+  // === 2. Cuando hay sesión: cargar negocio, rol y código ===
   useEffect(() => {
     if (!session) {
       setNegocioId(null)
@@ -49,7 +57,6 @@ function App() {
       return
     }
     async function cargarNegocio() {
-      // Traemos negocio_id, rol y, con un join, el nombre y el código del negocio
       const { data, error } = await supabase
         .from('perfiles')
         .select('negocio_id, rol, negocios(nombre, codigo_invitacion)')
@@ -77,7 +84,6 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [negocioId])
 
-  // Carga clientes, sus movimientos y calcula saldos
   async function cargarClientes() {
     const { data: listaClientes, error: errC } = await supabase
       .from('clientes')
@@ -110,7 +116,6 @@ function App() {
     setClientes(clientesConSaldo)
   }
 
-  // Carga el catálogo de productos del negocio
   async function cargarProductos() {
     const { data, error } = await supabase
       .from('productos')
@@ -124,7 +129,6 @@ function App() {
     setProductos(data)
   }
 
-  // Al elegir un producto del desplegable, autocompleta el monto con su precio
   function seleccionarProducto(valor) {
     setProductoSel(valor)
     if (valor && valor !== 'otro') {
@@ -135,13 +139,11 @@ function App() {
     }
   }
 
-  // Copia el código de invitación al portapapeles
   function copiarCodigo() {
     navigator.clipboard.writeText(codigoInvitacion)
     setMensaje('Código copiado: ' + codigoInvitacion)
   }
 
-  // Agrega un producto nuevo al catálogo del negocio
   async function agregarProducto() {
     setMensaje('')
     if (nuevoProdNombre.trim() === '') {
@@ -169,7 +171,6 @@ function App() {
     cargarProductos()
   }
 
-  // Elimina un producto del catálogo
   async function eliminarProducto(idProducto) {
     const confirmar = window.confirm('¿Eliminar este producto del catálogo?')
     if (!confirmar) return
@@ -186,7 +187,6 @@ function App() {
     cargarProductos()
   }
 
-  // Registra un nuevo fiado
   async function registrarFiado() {
     setMensaje('')
 
@@ -221,7 +221,6 @@ function App() {
       clienteId = Number(clienteSel)
     }
 
-    // Determinamos el concepto (producto)
     let concepto
     if (productoSel === 'otro') {
       concepto = productoOtro.trim()
@@ -259,7 +258,6 @@ function App() {
     cargarClientes()
   }
 
-  // Registra un abono (pago) de un cliente, reduciendo su saldo
   async function registrarAbono(cliente) {
     setMensaje('')
     const entrada = window.prompt(
@@ -292,7 +290,6 @@ function App() {
     cargarClientes()
   }
 
-  // Elimina un movimiento (fiado o abono) por su id
   async function eliminarMovimiento(idMovimiento) {
     const confirmar = window.confirm('¿Seguro que deseas eliminar este movimiento?')
     if (!confirmar) return
@@ -311,7 +308,6 @@ function App() {
     cargarClientes()
   }
 
-  // Cierra la sesión del usuario
   async function cerrarSesion() {
     await supabase.auth.signOut()
     setClientes([])
@@ -319,7 +315,6 @@ function App() {
     setMensaje('')
   }
 
-  // Formatea una fecha a algo legible (ej. 25/06/2026)
   function formatFecha(fechaISO) {
     const f = new Date(fechaISO)
     return f.toLocaleDateString('es-HN')
@@ -332,6 +327,11 @@ function App() {
         Cargando...
       </div>
     )
+  }
+
+  // --- Si el usuario volvió desde el correo de recuperación: pantalla de nueva contraseña ---
+  if (modoRecuperacion) {
+    return <NuevaPassword onListo={() => setModoRecuperacion(false)} />
   }
 
   // --- Si NO hay sesión, mostramos la pantalla de login/registro ---
@@ -534,10 +534,10 @@ function App() {
 }
 
 // =======================================================================
-// Componente de autenticación: login, crear negocio, o unirse por código
+// Componente de autenticación: login, crear negocio, unirse o recuperar
 // =======================================================================
 function Auth() {
-  // 'login' | 'crear' (dueña) | 'unir' (empleado con código)
+  // 'login' | 'crear' | 'unir' | 'recuperar'
   const [modo, setModo] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -545,10 +545,11 @@ function Auth() {
   const [nombreNegocio, setNombreNegocio] = useState('')
   const [codigo, setCodigo] = useState('')
   const [error, setError] = useState('')
+  const [aviso, setAviso] = useState('')
   const [procesando, setProcesando] = useState(false)
 
   async function iniciarSesion() {
-    setError('')
+    setError(''); setAviso('')
     setProcesando(true)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) setError('No se pudo iniciar sesión: ' + error.message)
@@ -556,7 +557,7 @@ function Auth() {
   }
 
   async function crearNegocio() {
-    setError('')
+    setError(''); setAviso('')
     if (nombreNegocio.trim() === '') {
       setError('Escribe el nombre de tu negocio.')
       return
@@ -565,19 +566,14 @@ function Auth() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: {
-          nombre: nombre.trim(),
-          nombre_negocio: nombreNegocio.trim(),
-        },
-      },
+      options: { data: { nombre: nombre.trim(), nombre_negocio: nombreNegocio.trim() } },
     })
     if (error) setError('No se pudo registrar: ' + error.message)
     setProcesando(false)
   }
 
   async function unirseConCodigo() {
-    setError('')
+    setError(''); setAviso('')
     if (codigo.trim() === '') {
       setError('Escribe el código de invitación que te dieron.')
       return
@@ -586,34 +582,50 @@ function Auth() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: {
-          nombre: nombre.trim(),
-          codigo_invitacion: codigo.trim().toUpperCase(),
-        },
-      },
+      options: { data: { nombre: nombre.trim(), codigo_invitacion: codigo.trim().toUpperCase() } },
     })
-    // Si el código es inválido, el trigger falla y Supabase devuelve error
     if (error) setError('No se pudo unir: verifica el código. (' + error.message + ')')
+    setProcesando(false)
+  }
+
+  // Envía el correo con el link para restablecer la contraseña
+  async function enviarRecuperacion() {
+    setError(''); setAviso('')
+    if (email.trim() === '') {
+      setError('Escribe tu correo para enviarte el enlace.')
+      return
+    }
+    setProcesando(true)
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: window.location.origin,
+    })
+    if (error) {
+      setError('No se pudo enviar el correo: ' + error.message)
+    } else {
+      setAviso('Te enviamos un correo con el enlace para restablecer tu contraseña. Revisa tu bandeja (y el spam).')
+    }
     setProcesando(false)
   }
 
   function accionPrincipal() {
     if (modo === 'login') return iniciarSesion()
     if (modo === 'crear') return crearNegocio()
-    return unirseConCodigo()
+    if (modo === 'unir') return unirseConCodigo()
+    return enviarRecuperacion()
   }
 
   const titulo =
     modo === 'login' ? 'Iniciar sesión'
       : modo === 'crear' ? 'Registrar mi negocio'
-        : 'Unirme a un negocio'
+        : modo === 'unir' ? 'Unirme a un negocio'
+          : 'Recuperar contraseña'
 
   const textoBoton =
     procesando ? 'Procesando...'
       : modo === 'login' ? 'Entrar'
         : modo === 'crear' ? 'Crear cuenta'
-          : 'Unirme'
+          : modo === 'unir' ? 'Unirme'
+            : 'Enviar enlace'
 
   return (
     <div style={{ padding: '2rem', fontFamily: 'sans-serif', maxWidth: '400px', margin: '2rem auto' }}>
@@ -673,25 +685,48 @@ function Auth() {
           style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem' }}
         />
 
-        <label>Contraseña:</label>
-        <input
-          type="password"
-          autoComplete={modo === 'login' ? 'current-password' : 'new-password'}
-          placeholder="Mínimo 6 caracteres"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={{ display: 'block', width: '100%', marginBottom: '0.8rem', padding: '0.5rem' }}
-        />
+        {/* Contraseña: en todos los modos menos recuperar */}
+        {modo !== 'recuperar' && (
+          <>
+            <label>Contraseña:</label>
+            <input
+              type="password"
+              autoComplete={modo === 'login' ? 'current-password' : 'new-password'}
+              placeholder="Mínimo 6 caracteres"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{ display: 'block', width: '100%', marginBottom: '0.3rem', padding: '0.5rem' }}
+            />
+            {/* Enlace de olvidé contraseña: solo en login */}
+            {modo === 'login' && (
+              <div style={{ textAlign: 'right', marginBottom: '0.6rem' }}>
+                <button
+                  onClick={() => { setModo('recuperar'); setError(''); setAviso('') }}
+                  style={{ border: 'none', background: 'none', color: 'blue', cursor: 'pointer', fontSize: '0.85rem', textDecoration: 'underline' }}
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              </div>
+            )}
+          </>
+        )}
+
+        {modo === 'recuperar' && (
+          <p style={{ fontSize: '0.85rem', color: '#555', marginTop: '0.3rem' }}>
+            Te enviaremos un enlace a tu correo para crear una contraseña nueva.
+          </p>
+        )}
 
         <button
           onClick={accionPrincipal}
           disabled={procesando}
-          style={{ padding: '0.5rem 1rem', cursor: 'pointer', width: '100%' }}
+          style={{ padding: '0.5rem 1rem', cursor: 'pointer', width: '100%', marginTop: '0.5rem' }}
         >
           {textoBoton}
         </button>
 
         {error && <p style={{ marginTop: '0.5rem', color: 'red' }}>{error}</p>}
+        {aviso && <p style={{ marginTop: '0.5rem', color: '#2e7d32' }}>{aviso}</p>}
 
         {/* Enlaces para cambiar de modo */}
         <div style={{ marginTop: '1rem', fontSize: '0.9rem', lineHeight: '1.8' }}>
@@ -699,29 +734,29 @@ function Auth() {
             <div>
               ¿Ya tienes cuenta?{' '}
               <button
-                onClick={() => { setModo('login'); setError('') }}
+                onClick={() => { setModo('login'); setError(''); setAviso('') }}
                 style={{ border: 'none', background: 'none', color: 'blue', cursor: 'pointer', textDecoration: 'underline' }}
               >
                 Inicia sesión
               </button>
             </div>
           )}
-          {modo !== 'crear' && (
+          {modo !== 'crear' && modo !== 'recuperar' && (
             <div>
               ¿Vas a abrir un negocio nuevo?{' '}
               <button
-                onClick={() => { setModo('crear'); setError('') }}
+                onClick={() => { setModo('crear'); setError(''); setAviso('') }}
                 style={{ border: 'none', background: 'none', color: 'blue', cursor: 'pointer', textDecoration: 'underline' }}
               >
                 Registra tu negocio
               </button>
             </div>
           )}
-          {modo !== 'unir' && (
+          {modo !== 'unir' && modo !== 'recuperar' && (
             <div>
               ¿Te invitaron a un negocio?{' '}
               <button
-                onClick={() => { setModo('unir'); setError('') }}
+                onClick={() => { setModo('unir'); setError(''); setAviso('') }}
                 style={{ border: 'none', background: 'none', color: 'blue', cursor: 'pointer', textDecoration: 'underline' }}
               >
                 Unirme con código
@@ -729,6 +764,80 @@ function Auth() {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// =======================================================================
+// Pantalla para escribir la nueva contraseña (al volver desde el correo)
+// =======================================================================
+function NuevaPassword({ onListo }) {
+  const [password, setPassword] = useState('')
+  const [password2, setPassword2] = useState('')
+  const [error, setError] = useState('')
+  const [aviso, setAviso] = useState('')
+  const [procesando, setProcesando] = useState(false)
+
+  async function guardarPassword() {
+    setError(''); setAviso('')
+    if (password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres.')
+      return
+    }
+    if (password !== password2) {
+      setError('Las contraseñas no coinciden.')
+      return
+    }
+    setProcesando(true)
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) {
+      setError('No se pudo actualizar: ' + error.message)
+      setProcesando(false)
+      return
+    }
+    setAviso('¡Contraseña actualizada! Ya puedes usar la app.')
+    setProcesando(false)
+    // Tras un momento, salimos del modo recuperación y entramos con la sesión ya activa
+    setTimeout(() => onListo(), 1500)
+  }
+
+  return (
+    <div style={{ padding: '2rem', fontFamily: 'sans-serif', maxWidth: '400px', margin: '2rem auto' }}>
+      <h1>Control de Créditos</h1>
+      <div style={{ padding: '1.5rem', border: '1px solid #ccc', borderRadius: '8px' }}>
+        <h2>Nueva contraseña</h2>
+
+        <label>Contraseña nueva:</label>
+        <input
+          type="password"
+          autoComplete="new-password"
+          placeholder="Mínimo 6 caracteres"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem' }}
+        />
+
+        <label>Repite la contraseña:</label>
+        <input
+          type="password"
+          autoComplete="new-password"
+          placeholder="Escríbela de nuevo"
+          value={password2}
+          onChange={(e) => setPassword2(e.target.value)}
+          style={{ display: 'block', width: '100%', marginBottom: '0.8rem', padding: '0.5rem' }}
+        />
+
+        <button
+          onClick={guardarPassword}
+          disabled={procesando}
+          style={{ padding: '0.5rem 1rem', cursor: 'pointer', width: '100%' }}
+        >
+          {procesando ? 'Guardando...' : 'Guardar contraseña'}
+        </button>
+
+        {error && <p style={{ marginTop: '0.5rem', color: 'red' }}>{error}</p>}
+        {aviso && <p style={{ marginTop: '0.5rem', color: '#2e7d32' }}>{aviso}</p>}
       </div>
     </div>
   )
