@@ -207,6 +207,11 @@ function App() {
 
   const totalCarrito = carrito.reduce((s, l) => s + l.precio * l.cantidad, 0)
 
+  // Total de todo lo que está pendiente de cobro (suma de saldos positivos)
+  const totalPendiente = clientes.reduce((suma, c) => {
+    return suma + (c.saldo > 0 ? c.saldo : 0)
+  }, 0)
+
   function copiarCodigo() {
     navigator.clipboard.writeText(codigoInvitacion)
     setMensaje('Código copiado: ' + codigoInvitacion)
@@ -627,6 +632,17 @@ function App() {
 
       {/* Lista de clientes con su saldo y detalle (solo los que deben algo) */}
       <h2>Clientes con saldo pendiente</h2>
+      
+      {clientes.filter((c) => c.saldo > 0).length > 0 && (
+        <div style={{ marginBottom: '1rem', padding: '0.8rem 1rem', background: '#fff8e1', border: '1px solid #ffe082', borderRadius: '8px' }}>
+          <strong style={{ fontSize: '1.05rem' }}>Total por cobrar: L {totalPendiente.toFixed(2)}</strong>
+          <span style={{ color: '#777', fontSize: '0.85rem' }}>
+            {' '}({clientes.filter((c) => c.saldo > 0).length} {clientes.filter((c) => c.saldo > 0).length === 1 ? 'cliente' : 'clientes'})
+          </span>
+        </div>
+      )}
+
+      
       {clientes.filter((c) => c.saldo > 0).length === 0 && (
         <p>Ningún cliente tiene saldo pendiente.</p>
       )}
