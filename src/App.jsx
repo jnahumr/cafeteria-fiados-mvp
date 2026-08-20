@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabaseClient'
 
+// Quita acentos para que "Maria" también encuentre a "María".
+// Sin esto, la dueña tendría que escribir la tilde exacta para hallar al cliente.
+function sinAcentos(texto) {
+  return String(texto || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
 function App() {
   // --- Estado de sesión y negocio ---
   const [session, setSession] = useState(null)
@@ -33,6 +42,10 @@ function App() {
 
   // --- Auditoría de eliminados (solo dueña) ---
   const [mostrarEliminados, setMostrarEliminados] = useState(false)
+
+  // --- Listado de clientes: búsqueda y detalles desplegados ---
+  const [busqueda, setBusqueda] = useState('')
+  const [detallesAbiertos, setDetallesAbiertos] = useState([]) // ids de clientes
 
   // === 1. Al iniciar: revisar sesión y escuchar cambios ===
   useEffect(() => {
@@ -211,6 +224,23 @@ function App() {
   const totalPendiente = clientes.reduce((suma, c) => {
     return suma + (c.saldo > 0 ? c.saldo : 0)
   }, 0)
+
+  // Solo los que deben algo. Se deriva una vez y se reutiliza en todo el render.
+  const clientesConDeuda = clientes.filter((c) => c.saldo > 0)
+
+  // Lo que realmente se pinta: los deudores que coinciden con la búsqueda.
+  const termino = sinAcentos(busqueda.trim())
+  const clientesFiltrados = termino === ''
+    ? clientesConDeuda
+    : clientesConDeuda.filter((c) => sinAcentos(c.nombre).includes(termino))
+
+  function alternarDetalle(idCliente) {
+    setDetallesAbiertos((abiertos) =>
+      abiertos.includes(idCliente)
+        ? abiertos.filter((id) => id !== idCliente)
+        : [...abiertos, idCliente]
+    )
+  }
 
   function copiarCodigo() {
     navigator.clipboard.writeText(codigoInvitacion)
@@ -633,32 +663,69 @@ function App() {
       {/* Lista de clientes con su saldo y detalle (solo los que deben algo) */}
       <h2>Clientes con saldo pendiente</h2>
       
-      {clientes.filter((c) => c.saldo > 0).length > 0 && (
+      {clientesConDeuda.length > 0 && (
         <div style={{ marginBottom: '1rem', padding: '0.8rem 1rem', background: '#fff8e1', border: '1px solid #ffe082', borderRadius: '8px' }}>
           <strong style={{ fontSize: '1.05rem' }}>Total por cobrar: L {totalPendiente.toFixed(2)}</strong>
           <span style={{ color: '#777', fontSize: '0.85rem' }}>
-            {' '}({clientes.filter((c) => c.saldo > 0).length} {clientes.filter((c) => c.saldo > 0).length === 1 ? 'cliente' : 'clientes'})
+            {' '}({clientesConDeuda.length} {clientesConDeuda.length === 1 ? 'cliente' : 'clientes'})
           </span>
         </div>
       )}
 
-      
-      {clientes.filter((c) => c.saldo > 0).length === 0 && (
+      {/* Buscador: filtra conforme se escribe, sin acentos ni mayúsculas */}
+      {clientesConDeuda.length > 0 && (
+        <div style={{ position: 'relative', marginBottom: '1rem' }}>
+          <input
+            type="search"
+            placeholder="🔍 Buscar cliente por nombre..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            style={{ width: '100%', padding: '0.6rem', boxSizing: 'border-box', border: '1px solid #ccc', borderRadius: '8px', fontSize: '1rem' }}
+          />
+          {busqueda !== '' && (
+            <div style={{ fontSize: '0.85rem', color: '#777', marginTop: '0.3rem' }}>
+              {clientesFiltrados.length} de {clientesConDeuda.length} clientes
+              <button
+                onClick={() => setBusqueda('')}
+                style={{ marginLeft: '0.5rem', border: 'none', background: 'none', color: 'blue', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.85rem' }}
+              >
+                limpiar
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {clientesConDeuda.length === 0 && (
         <p>Ningún cliente tiene saldo pendiente.</p>
       )}
-      {clientes.filter((c) => c.saldo > 0).map((c) => (
+      {clientesConDeuda.length > 0 && clientesFiltrados.length === 0 && (
+        <p style={{ color: '#777' }}>Ningún cliente con saldo coincide con «{busqueda}».</p>
+      )}
+      {clientesFiltrados.map((c) => (
         <div key={c.id} style={{ marginBottom: '1rem', padding: '0.8rem', border: '1px solid #eee', borderRadius: '8px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
             <span><strong>{c.nombre}</strong> — debe: L {c.saldo.toFixed(2)}</span>
-            <button
-              onClick={() => registrarAbono(c)}
-              style={{ padding: '0.3rem 0.7rem', cursor: 'pointer', background: '#e8f5e9', border: '1px solid #66bb6a', borderRadius: '6px', color: '#2e7d32' }}
-              title="Registrar un pago de este cliente"
-            >
-              Abonar
-            </button>
+            <span style={{ display: 'flex', gap: '0.4rem' }}>
+              <button
+                onClick={() => alternarDetalle(c.id)}
+                style={{ padding: '0.3rem 0.7rem', cursor: 'pointer', background: '#f5f5f5', border: '1px solid #bbb', borderRadius: '6px' }}
+                title="Ver los movimientos de este cliente"
+              >
+                {detallesAbiertos.includes(c.id)
+                  ? '▲ Ocultar'
+                  : `▼ Detalle (${c.movimientos.length})`}
+              </button>
+              <button
+                onClick={() => registrarAbono(c)}
+                style={{ padding: '0.3rem 0.7rem', cursor: 'pointer', background: '#e8f5e9', border: '1px solid #66bb6a', borderRadius: '6px', color: '#2e7d32' }}
+                title="Registrar un pago de este cliente"
+              >
+                Abonar
+              </button>
+            </span>
           </div>
-          <ul style={{ marginTop: '0.4rem', fontSize: '0.9rem' }}>
+          <ul style={{ marginTop: '0.4rem', fontSize: '0.9rem', display: detallesAbiertos.includes(c.id) ? 'block' : 'none' }}>
             {c.movimientos.map((m) => (
               <li key={m.id} style={{ marginBottom: '0.4rem' }}>
                 {formatFecha(m.fecha)} — {m.tipo === 'fiado' ? 'Fiado' : 'Abono'}: L {Number(m.monto).toFixed(2)}
