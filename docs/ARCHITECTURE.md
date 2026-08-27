@@ -215,23 +215,3 @@ erDiagram
   `security definer` + política que permite leer perfiles del mismo `negocio_id`.
 - La creación de usuarios se hace en una **Edge Function** (`crear-usuario`) que usa la
   `service_role key` desde variables de entorno del servidor — nunca en el frontend.
-
----
-
-## Cómo publicar esto en el repo
-
-1. Colocá este archivo y las imágenes en la **misma carpeta** (por ejemplo `docs/`):
-
-   ```
-   docs/
-     ARCHITECTURE.md
-     c4_1_contexto.png     c4_1_contexto.svg
-     c4_2_contenedores.png c4_2_contenedores.svg
-     c4_3_componentes.png  c4_3_componentes.svg
-     c4_4_codigo.png       c4_4_codigo.svg
-     erd.png               erd.svg
-   ```
-
-2. Los `![...](./archivo.png)` funcionan porque apuntan a la misma carpeta.
-3. Los bloques Mermaid se renderizan solos en GitHub — podés editarlos y el dibujo se
-   actualiza sin regenerar imágenes. Los `.png/.svg` quedan como respaldo descargable.
