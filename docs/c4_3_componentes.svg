@@ -1,0 +1,79 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='1020' height='760' viewBox='0 0 1020 760'>
+<rect width='1020' height='760' fill='#ffffff'/>
+<defs>
+      <marker id='arrow' markerWidth='11' markerHeight='11' refX='8' refY='3' orient='auto' markerUnits='strokeWidth'>
+        <path d='M0,0 L8,3 L0,6 Z' fill='#5b6470'/></marker></defs>
+<text x='510.0' y='36' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='22' font-weight='700' fill='#1b2733'>C4 · Nivel 3 — Componentes (dentro de la PWA)</text>
+<rect x='40' y='58' width='940' height='520' rx='10' fill='none' stroke='#8a93a0' stroke-width='1.4' stroke-dasharray='7 5'/>
+<text x='56' y='80' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='13' font-weight='700' fill='#6b7480'>PWA — Control de Créditos  [React + Vite]</text>
+<rect x='68.0' y='93' width='250' height='78' rx='10' fill='#00000010'/>
+<rect x='65.0' y='90' width='250' height='78' rx='10' fill='#85bbf0' stroke='#5a9bd5' stroke-width='1.6'/>
+<text x='190' y='116' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#08315e'>AuthContext</text>
+<text x='190' y='133' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11' font-style='italic' fill='#0b4884'>[Contexto React]</text>
+<text x='190' y='150' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11.5' fill='#0b4884'>Estado de sesión</text>
+<text x='190' y='165' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11.5' fill='#0b4884'>del usuario</text>
+<rect x='388.0' y='93' width='250' height='78' rx='10' fill='#00000010'/>
+<rect x='385.0' y='90' width='250' height='78' rx='10' fill='#85bbf0' stroke='#5a9bd5' stroke-width='1.6'/>
+<text x='510' y='116' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#08315e'>Contexto de Negocio</text>
+<text x='510' y='133' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11' font-style='italic' fill='#0b4884'>[Contexto React]</text>
+<text x='510' y='150' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11.5' fill='#0b4884'>Resuelve el negocio_id</text>
+<text x='510' y='165' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11.5' fill='#0b4884'>del usuario logueado</text>
+<rect x='708.0' y='93' width='250' height='78' rx='10' fill='#00000010'/>
+<rect x='705.0' y='90' width='250' height='78' rx='10' fill='#85bbf0' stroke='#5a9bd5' stroke-width='1.6'/>
+<text x='830' y='116' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#08315e'>Invitación Empleados</text>
+<text x='830' y='133' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11' font-style='italic' fill='#0b4884'>[Módulo]</text>
+<text x='830' y='150' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11.5' fill='#0b4884'>Códigos de 6 caracteres</text>
+<text x='830' y='165' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11.5' fill='#0b4884'>alta de empleados</text>
+<rect x='68.0' y='208' width='250' height='78' rx='10' fill='#00000010'/>
+<rect x='65.0' y='205' width='250' height='78' rx='10' fill='#85bbf0' stroke='#5a9bd5' stroke-width='1.6'/>
+<text x='190' y='231' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#08315e'>Módulo Clientes</text>
+<text x='190' y='248' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11' font-style='italic' fill='#0b4884'>[Módulo]</text>
+<text x='190' y='265' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11.5' fill='#0b4884'>Alta/edición · validación</text>
+<text x='190' y='280' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11.5' fill='#0b4884'>anti-duplicados</text>
+<rect x='388.0' y='208' width='250' height='78' rx='10' fill='#00000010'/>
+<rect x='385.0' y='205' width='250' height='78' rx='10' fill='#85bbf0' stroke='#5a9bd5' stroke-width='1.6'/>
+<text x='510' y='231' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#08315e'>Módulo Productos</text>
+<text x='510' y='248' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11' font-style='italic' fill='#0b4884'>[Módulo]</text>
+<text x='510' y='265' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11.5' fill='#0b4884'>Catálogo de productos</text>
+<text x='510' y='280' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11.5' fill='#0b4884'>del negocio</text>
+<rect x='708.0' y='208' width='250' height='78' rx='10' fill='#00000010'/>
+<rect x='705.0' y='205' width='250' height='78' rx='10' fill='#85bbf0' stroke='#5a9bd5' stroke-width='1.6'/>
+<text x='830' y='231' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#08315e'>Carrito de Fiados</text>
+<text x='830' y='248' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11' font-style='italic' fill='#0b4884'>[Componente]</text>
+<text x='830' y='265' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11.5' fill='#0b4884'>Varios productos en</text>
+<text x='830' y='280' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11.5' fill='#0b4884'>un mismo fiado</text>
+<rect x='388.0' y='323' width='250' height='78' rx='10' fill='#00000010'/>
+<rect x='385.0' y='320' width='250' height='78' rx='10' fill='#85bbf0' stroke='#5a9bd5' stroke-width='1.6'/>
+<text x='510' y='346' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#08315e'>Registro de Movimientos</text>
+<text x='510' y='363' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11' font-style='italic' fill='#0b4884'>[Módulo]</text>
+<text x='510' y='380' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11.5' fill='#0b4884'>Crea el fiado · autoría</text>
+<text x='510' y='395' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11.5' fill='#0b4884'>soft delete + auditoría</text>
+<rect x='363.0' y='438' width='300' height='72' rx='10' fill='#00000010'/>
+<rect x='360.0' y='435' width='300' height='72' rx='10' fill='#438dd5' stroke='#2e6da4' stroke-width='1.6'/>
+<text x='510' y='461' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#ffffff'>Cliente Supabase</text>
+<text x='510' y='478' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11' font-style='italic' fill='#eef5fc'>[lib/supabase.js — supabase-js]</text>
+<text x='510' y='495' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11.5' fill='#eef5fc'>Único punto de acceso al backend</text>
+<rect x='133.0' y='623' width='240' height='96' rx='10' fill='#00000010'/>
+<rect x='130.0' y='620' width='240' height='96' rx='10' fill='#438dd5' stroke='#2e6da4' stroke-width='1.6'/>
+<text x='250' y='646' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#ffffff'>Supabase Auth</text>
+<text x='250' y='663' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11' font-style='italic' fill='#eef5fc'>[Auth]</text>
+<text x='250' y='680' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11.5' fill='#eef5fc'>login · registro</text>
+<text x='250' y='695' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11.5' fill='#eef5fc'>recuperación</text>
+<rect x='593.0' y='623' width='260' height='96' rx='10' fill='#00000010'/>
+<rect x='590.0' y='620' width='260' height='96' rx='10' fill='#438dd5' stroke='#2e6da4' stroke-width='1.6'/>
+<text x='720' y='646' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#ffffff'>Postgres + RLS</text>
+<text x='720' y='663' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11' font-style='italic' fill='#eef5fc'>[Base de datos]</text>
+<text x='720' y='680' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11.5' fill='#eef5fc'>mi_negocio_id()</text>
+<text x='720' y='695' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11.5' fill='#eef5fc'>5 tablas del dominio</text>
+<line x1='190' y1='283' x2='510' y2='435' stroke='#9aa3ad' stroke-width='1.2' opacity='0.75' marker-end='url(#arrow)'/>
+<line x1='510' y1='398' x2='510' y2='435' stroke='#9aa3ad' stroke-width='1.2' opacity='0.75' marker-end='url(#arrow)'/>
+<line x1='830' y1='283' x2='510' y2='435' stroke='#9aa3ad' stroke-width='1.2' opacity='0.75' marker-end='url(#arrow)'/>
+<line x1='190' y1='283' x2='510' y2='435' stroke='#9aa3ad' stroke-width='1.2' opacity='0.75' marker-end='url(#arrow)'/>
+<line x1='830' y1='283' x2='510' y2='435' stroke='#9aa3ad' stroke-width='1.2' opacity='0.75' marker-end='url(#arrow)'/>
+<line x1='430' y1='507' x2='340' y2='618' stroke='#5b6470' stroke-width='1.6' marker-end='url(#arrow)'/>
+<rect x='321.1' y='551.5' width='67.80000000000001' height='18' rx='4' fill='#ffffff' opacity='0.9'/>
+<text x='355.0' y='564.5' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11' fill='#3a424d'>autentica</text>
+<line x1='590' y1='507' x2='780' y2='618' stroke='#5b6470' stroke-width='1.6' marker-end='url(#arrow)'/>
+<rect x='699.7' y='551.5' width='30.6' height='18' rx='4' fill='#ffffff' opacity='0.9'/>
+<text x='715.0' y='564.5' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif' font-size='11' fill='#3a424d'>SQL</text>
+</svg>
