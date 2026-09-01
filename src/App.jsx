@@ -3,8 +3,7 @@ import { supabase } from './supabaseClient'
 import { calcularSaldoCliente, buscarClienteExistente } from './lib/creditos'
 import { sinAcentos } from './lib/texto'
 import { formatFecha } from './lib/fecha'
-import { obtenerProductos, crearProducto, eliminarProductoPorId } from './lib/api'
-
+import { obtenerProductos, crearProducto, eliminarProductoPorId, obtenerClientes, obtenerMovimientos } from './lib/api'
 
 
 
@@ -100,10 +99,7 @@ function App() {
   }, [negocioId])
 
   async function cargarClientes() {
-    const { data: listaClientes, error: errC } = await supabase
-      .from('clientes')
-      .select('*')
-      .order('nombre')
+    const { data: listaClientes, error: errC } = await obtenerClientes()
 
     if (errC) {
       setMensaje('Error al cargar clientes: ' + errC.message)
@@ -111,10 +107,7 @@ function App() {
     }
 
     // Traemos TODOS los movimientos (con autor, detalle, y quién eliminó)
-    const { data: movimientos, error: errM } = await supabase
-      .from('movimientos')
-      .select('*, perfiles!movimientos_registrado_por_fkey(nombre), eliminador:perfiles!movimientos_eliminado_por_fkey(nombre), movimiento_detalle(producto_nombre, cantidad, precio_unitario)')
-      .order('fecha', { ascending: false })
+      const { data: movimientos, error: errM } = await obtenerMovimientos()
 
     if (errM) {
       setMensaje('Error al cargar movimientos: ' + errM.message)
