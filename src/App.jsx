@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabaseClient'
+import { calcularSaldoCliente, buscarClienteExistente } from './lib/creditos'
 
 // Quita acentos para que "Maria" también encuentre a "María".
 // Sin esto, la dueña tendría que escribir la tilde exacta para hallar al cliente.
@@ -128,9 +129,7 @@ function App() {
 
     const clientesConSaldo = listaClientes.map((cliente) => {
       const susMovimientos = activos.filter((m) => m.cliente_id === cliente.id)
-      const saldo = susMovimientos.reduce((total, m) => {
-        return m.tipo === 'fiado' ? total + Number(m.monto) : total - Number(m.monto)
-      }, 0)
+       const saldo = calcularSaldoCliente(susMovimientos)
       return { ...cliente, saldo, movimientos: susMovimientos }
     })
 
@@ -306,9 +305,7 @@ function App() {
         setMensaje('Escribe el nombre del cliente nuevo.')
         return
       }
-      const yaExiste = clientes.find(
-        (c) => c.nombre.trim().toLowerCase() === nombreLimpio.toLowerCase()
-      )
+           const yaExiste = buscarClienteExistente(clientes, nombreLimpio)
       if (yaExiste) {
         clienteId = yaExiste.id
       } else {
