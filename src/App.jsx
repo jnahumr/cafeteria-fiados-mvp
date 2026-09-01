@@ -1,15 +1,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabaseClient'
 import { calcularSaldoCliente, buscarClienteExistente } from './lib/creditos'
+import { sinAcentos } from './lib/texto'
+import { formatFecha } from './lib/fecha'
 
-// Quita acentos para que "Maria" también encuentre a "María".
-// Sin esto, la dueña tendría que escribir la tilde exacta para hallar al cliente.
-function sinAcentos(texto) {
-  return String(texto || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-}
+
 
 function App() {
   // --- Estado de sesión y negocio ---
@@ -444,14 +439,7 @@ function App() {
     setMensaje('')
   }
 
-  function formatFecha(fechaISO) {
-    const f = new Date(fechaISO)
-    return f.toLocaleString('es-HN', {
-      timeZone: 'America/Tegucigalpa',
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-    })
-  }
+
 
   if (cargando) {
     return (
