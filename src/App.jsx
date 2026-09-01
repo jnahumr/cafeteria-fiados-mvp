@@ -3,6 +3,8 @@ import { supabase } from './supabaseClient'
 import { calcularSaldoCliente, buscarClienteExistente } from './lib/creditos'
 import { sinAcentos } from './lib/texto'
 import { formatFecha } from './lib/fecha'
+import { obtenerProductos, crearProducto, eliminarProductoPorId } from './lib/api'
+
 
 
 
@@ -141,10 +143,7 @@ function App() {
   }
 
   async function cargarProductos() {
-    const { data, error } = await supabase
-      .from('productos')
-      .select('*')
-      .order('nombre')
+    const { data, error } = await obtenerProductos()
 
     if (error) {
       setMensaje('Error al cargar productos: ' + error.message)
@@ -253,9 +252,12 @@ function App() {
       return
     }
 
-    const { error } = await supabase
-      .from('productos')
-      .insert({ nombre: nuevoProdNombre.trim(), precio: precioNum, negocio_id: negocioId })
+    const { error } = await crearProducto({
+      nombre: nuevoProdNombre.trim(),
+      precio: precioNum,
+      negocioId,
+    })
+
 
     if (error) {
       setMensaje('Error al agregar producto: ' + error.message)
@@ -272,10 +274,7 @@ function App() {
     const confirmar = window.confirm('¿Eliminar este producto del catálogo?')
     if (!confirmar) return
 
-    const { error } = await supabase
-      .from('productos')
-      .delete()
-      .eq('id', idProducto)
+    const { error } = await eliminarProductoPorId(idProducto)
 
     if (error) {
       setMensaje('Error al eliminar producto: ' + error.message)
