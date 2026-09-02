@@ -3,7 +3,7 @@ import { supabase } from './supabaseClient'
 import { calcularSaldoCliente, buscarClienteExistente } from './lib/creditos'
 import { sinAcentos } from './lib/texto'
 import { formatFecha } from './lib/fecha'
-import { obtenerProductos, crearProducto, eliminarProductoPorId, obtenerClientes, obtenerMovimientos } from './lib/api'
+import { obtenerProductos, crearProducto, eliminarProductoPorId, obtenerClientes, obtenerMovimientos, crearCliente, crearMovimientoFiado, crearDetalleMovimiento, crearAbono, marcarMovimientoEliminado } from './lib/api'
 
 
 
@@ -296,11 +296,10 @@ function App() {
       if (yaExiste) {
         clienteId = yaExiste.id
       } else {
-        const { data: nuevo, error: errNuevo } = await supabase
-          .from('clientes')
-          .insert({ nombre: nombreLimpio, negocio_id: negocioId })
-          .select()
-          .single()
+        const { data: nuevo, error: errNuevo } = await crearCliente({
+          nombre: nombreLimpio,
+          negocioId,
+        })
 
         if (errNuevo) {
           if (errNuevo.code === '23505') {
@@ -323,17 +322,12 @@ function App() {
       .map((l) => `${l.cantidad}x ${l.nombre}`)
       .join(', ')
 
-    const { data: mov, error: errMov } = await supabase
-      .from('movimientos')
-      .insert({
-        cliente_id: clienteId,
-        tipo: 'fiado',
-        monto: totalCarrito,
-        concepto: conceptoResumen,
-        negocio_id: negocioId,
-      })
-      .select()
-      .single()
+    const { data: mov, error: errMov } = await crearMovimientoFiado({
+      clienteId,
+      monto: totalCarrito,
+      concepto: conceptoResumen,
+      negocioId,
+    })
 
     if (errMov) {
       setMensaje('Error al registrar el fiado: ' + errMov.message)
@@ -348,9 +342,7 @@ function App() {
       precio_unitario: l.precio,
     }))
 
-    const { error: errDet } = await supabase
-      .from('movimiento_detalle')
-      .insert(lineas)
+    const { error: errDet } = await crearDetalleMovimiento(lineas)
 
     if (errDet) {
       setMensaje('El fiado se guardó, pero hubo un error con el detalle: ' + errDet.message)
@@ -380,15 +372,11 @@ function App() {
       return
     }
 
-    const { error } = await supabase
-      .from('movimientos')
-      .insert({
-        cliente_id: cliente.id,
-        tipo: 'abono',
-        monto: montoAbono,
-        concepto: 'Abono',
-        negocio_id: negocioId,
-      })
+    const { error } = await crearAbono({
+      clienteId: cliente.id,
+      monto: montoAbono,
+      negocioId,
+    })
 
     if (error) {
       setMensaje('Error al registrar el abono: ' + error.message)
@@ -405,13 +393,10 @@ function App() {
     if (!confirmar) return
 
     // En vez de DELETE, hacemos UPDATE guardando quién y cuándo
-    const { error } = await supabase
-      .from('movimientos')
-      .update({
-        eliminado_en: new Date().toISOString(),
-        eliminado_por: session.user.id,
-      })
-      .eq('id', idMovimiento)
+    const { error } = await marcarMovimientoEliminado({
+      idMovimiento,
+      eliminadoPor: session.user.id,
+    })
 
     if (error) {
       setMensaje('Error al eliminar: ' + error.message)
