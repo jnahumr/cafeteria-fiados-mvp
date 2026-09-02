@@ -95,7 +95,7 @@ function App() {
       cargarClientes()
       cargarProductos()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [negocioId])
 
   async function cargarClientes() {
