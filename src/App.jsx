@@ -799,7 +799,12 @@ function Auth() {
     setError(''); setAviso('')
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin },
+      options: {
+        redirectTo: window.location.origin,
+        // Obliga a Google a preguntar SIEMPRE qué cuenta usar, en vez de
+        // entrar solo con la sesión activa. Clave en compus compartidas.
+        queryParams: { prompt: 'select_account' },
+      },
     })
     // Si sale bien, el navegador se va a Google; solo mostramos error si falla.
     if (error) setError('No se pudo entrar con Google: ' + error.message)
