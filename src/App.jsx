@@ -3,7 +3,7 @@ import { supabase } from './supabaseClient'
 import { calcularSaldoCliente, buscarClienteExistente } from './lib/creditos'
 import { sinAcentos } from './lib/texto'
 import { formatFecha } from './lib/fecha'
-import { obtenerProductos, crearProducto, eliminarProductoPorId, obtenerClientes, obtenerMovimientos, crearCliente, crearMovimientoFiado, crearDetalleMovimiento, crearAbono, marcarMovimientoEliminado } from './lib/api'
+import { obtenerProductos, crearProducto, eliminarProductoPorId, obtenerClientes, obtenerMovimientos, crearCliente, crearMovimientoFiado, crearDetalleMovimiento, crearAbono, marcarMovimientoEliminado, crearNegocioOnboarding, unirseNegocioOnboarding } from './lib/api'
 
 
 
@@ -15,6 +15,8 @@ function App() {
   const [codigoInvitacion, setCodigoInvitacion] = useState('')
   const [rol, setRol] = useState('')
   const [cargando, setCargando] = useState(true)
+  const [sinPerfil, setSinPerfil] = useState(false) // logueado pero sin negocio (ej. entró con Google)
+  const [refrescar, setRefrescar] = useState(0) // para recargar el negocio tras el onboarding
 
   const [modoRecuperacion, setModoRecuperacion] = useState(false)
 
@@ -68,6 +70,7 @@ function App() {
       setNombreNegocio('')
       setCodigoInvitacion('')
       setRol('')
+      setSinPerfil(false)
       return
     }
     async function cargarNegocio() {
@@ -75,19 +78,26 @@ function App() {
         .from('perfiles')
         .select('negocio_id, rol, negocios(nombre, codigo_invitacion)')
         .eq('id', session.user.id)
-        .single()
+        .maybeSingle()
 
       if (error) {
         setMensaje('Error al cargar tu negocio: ' + error.message)
         return
       }
+      if (!data) {
+        // Logueado pero sin perfil: pasó por un login que no crea negocio
+        // (ej. Google la primera vez). Le mostramos el onboarding.
+        setSinPerfil(true)
+        return
+      }
+      setSinPerfil(false)
       setNegocioId(data.negocio_id)
       setRol(data.rol || '')
       setNombreNegocio(data.negocios?.nombre || '')
       setCodigoInvitacion(data.negocios?.codigo_invitacion || '')
     }
     cargarNegocio()
-  }, [session])
+  }, [session, refrescar])
 
   // === 3. Cuando ya sabemos el negocio: cargar clientes y productos ===
   useEffect(() => {
@@ -434,6 +444,15 @@ function App() {
     return <Auth />
   }
 
+  if (sinPerfil) {
+    return (
+      <Onboarding
+        nombreSugerido={session.user.user_metadata?.full_name || session.user.user_metadata?.name || ''}
+        onListo={() => { setSinPerfil(false); setRefrescar((n) => n + 1) }}
+      />
+    )
+  }
+
   return (
     <div style={{ padding: '2rem', fontFamily: 'sans-serif', maxWidth: '550px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -776,6 +795,16 @@ function Auth() {
     setProcesando(false)
   }
 
+  async function entrarConGoogle() {
+    setError(''); setAviso('')
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    })
+    // Si sale bien, el navegador se va a Google; solo mostramos error si falla.
+    if (error) setError('No se pudo entrar con Google: ' + error.message)
+  }
+
   async function crearNegocio() {
     setError(''); setAviso('')
     if (nombreNegocio.trim() === '') {
@@ -939,6 +968,29 @@ function Auth() {
           {textoBoton}
         </button>
 
+        {modo !== 'recuperar' && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0.9rem 0', color: '#999', fontSize: '0.85rem' }}>
+              <span style={{ flex: 1, height: '1px', background: '#ddd' }} />
+              o
+              <span style={{ flex: 1, height: '1px', background: '#ddd' }} />
+            </div>
+            <button
+              onClick={entrarConGoogle}
+              disabled={procesando}
+              style={{ padding: '0.5rem 1rem', cursor: 'pointer', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: '#fff', border: '1px solid #ccc', borderRadius: '4px', fontWeight: 500 }}
+            >
+              <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+              </svg>
+              Continuar con Google
+            </button>
+          </>
+        )}
+
         {error && <p style={{ marginTop: '0.5rem', color: 'red' }}>{error}</p>}
         {aviso && <p style={{ marginTop: '0.5rem', color: '#2e7d32' }}>{aviso}</p>}
 
@@ -976,6 +1028,159 @@ function Auth() {
               </button>
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// =======================================================================
+// Onboarding: para usuarios ya logueados que aún no tienen negocio
+// (típicamente entraron con Google la primera vez). Eligen crear un
+// negocio nuevo o unirse a uno existente con un código.
+// =======================================================================
+function Onboarding({ nombreSugerido, onListo }) {
+  const [modo, setModo] = useState('elegir') // 'elegir' | 'crear' | 'unir'
+  const [nombre, setNombre] = useState(nombreSugerido || '')
+  const [nombreNegocio, setNombreNegocio] = useState('')
+  const [codigo, setCodigo] = useState('')
+  const [error, setError] = useState('')
+  const [procesando, setProcesando] = useState(false)
+
+  async function crear() {
+    setError('')
+    if (nombreNegocio.trim() === '') {
+      setError('Escribe el nombre de tu negocio.')
+      return
+    }
+    setProcesando(true)
+    const { error } = await crearNegocioOnboarding({
+      nombreNegocio: nombreNegocio.trim(),
+      nombreUsuario: nombre.trim(),
+    })
+    if (error) {
+      setError('No se pudo crear el negocio: ' + error.message)
+      setProcesando(false)
+      return
+    }
+    onListo()
+  }
+
+  async function unir() {
+    setError('')
+    if (codigo.trim() === '') {
+      setError('Escribe el código de invitación que te dieron.')
+      return
+    }
+    setProcesando(true)
+    const { error } = await unirseNegocioOnboarding({
+      codigo: codigo.trim().toUpperCase(),
+      nombreUsuario: nombre.trim(),
+    })
+    if (error) {
+      setError('No se pudo unir: verifica el código. (' + error.message + ')')
+      setProcesando(false)
+      return
+    }
+    onListo()
+  }
+
+  async function salir() {
+    await supabase.auth.signOut()
+  }
+
+  const inputStyle = { display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem' }
+
+  return (
+    <div style={{ padding: '2rem', fontFamily: 'sans-serif', maxWidth: '400px', margin: '2rem auto' }}>
+      <h1>Control de Créditos</h1>
+      <div style={{ padding: '1.5rem', border: '1px solid #ccc', borderRadius: '8px' }}>
+        <h2>¡Bienvenido/a!</h2>
+        <p style={{ color: '#555', fontSize: '0.95rem' }}>
+          Para terminar, contanos cómo vas a usar la app.
+        </p>
+
+        {modo === 'elegir' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '1rem' }}>
+            <button
+              onClick={() => { setModo('crear'); setError('') }}
+              style={{ padding: '0.7rem 1rem', cursor: 'pointer' }}
+            >
+              Abrir un negocio nuevo
+            </button>
+            <button
+              onClick={() => { setModo('unir'); setError('') }}
+              style={{ padding: '0.7rem 1rem', cursor: 'pointer' }}
+            >
+              Unirme con un código de invitación
+            </button>
+          </div>
+        )}
+
+        {(modo === 'crear' || modo === 'unir') && (
+          <>
+            <label>Tu nombre:</label>
+            <input
+              type="text"
+              placeholder="Ej. Carlos Pérez"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              style={inputStyle}
+            />
+          </>
+        )}
+
+        {modo === 'crear' && (
+          <>
+            <label>Nombre del negocio:</label>
+            <input
+              type="text"
+              placeholder="Ej. Cafetería La Esquina"
+              value={nombreNegocio}
+              onChange={(e) => setNombreNegocio(e.target.value)}
+              style={inputStyle}
+            />
+            <button onClick={crear} disabled={procesando} style={{ padding: '0.5rem 1rem', cursor: 'pointer', width: '100%', marginTop: '0.3rem' }}>
+              {procesando ? 'Creando...' : 'Crear mi negocio'}
+            </button>
+          </>
+        )}
+
+        {modo === 'unir' && (
+          <>
+            <label>Código de invitación:</label>
+            <input
+              type="text"
+              placeholder="Ej. A3F9K2"
+              value={codigo}
+              onChange={(e) => setCodigo(e.target.value)}
+              style={{ ...inputStyle, textTransform: 'uppercase' }}
+            />
+            <button onClick={unir} disabled={procesando} style={{ padding: '0.5rem 1rem', cursor: 'pointer', width: '100%', marginTop: '0.3rem' }}>
+              {procesando ? 'Uniendo...' : 'Unirme al negocio'}
+            </button>
+          </>
+        )}
+
+        {error && <p style={{ marginTop: '0.5rem', color: 'red' }}>{error}</p>}
+
+        <div style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
+          {modo !== 'elegir' && (
+            <button
+              onClick={() => { setModo('elegir'); setError('') }}
+              style={{ border: 'none', background: 'none', color: 'blue', cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              ← Volver
+            </button>
+          )}
+          <div style={{ marginTop: '0.6rem' }}>
+            <button
+              onClick={salir}
+              style={{ border: 'none', background: 'none', color: '#888', cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              Cerrar sesión
+            </button>
+          </div>
         </div>
       </div>
     </div>

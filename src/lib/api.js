@@ -106,3 +106,22 @@ export async function marcarMovimientoEliminado({ idMovimiento, eliminadoPor }) 
     })
     .eq('id', idMovimiento)
 }
+
+// --- ONBOARDING (perfil para usuarios ya logueados, ej. entraron con Google) ---
+
+// Crea un negocio nuevo y deja al usuario actual como dueña.
+// La función en la base usa auth.uid(), por eso no le pasamos el id acá.
+export async function crearNegocioOnboarding({ nombreNegocio, nombreUsuario }) {
+  return await supabase.rpc('crear_negocio_onboarding', {
+    p_nombre_negocio: nombreNegocio,
+    p_nombre_usuario: nombreUsuario,
+  })
+}
+
+// Une al usuario actual a un negocio existente por código, como empleado.
+export async function unirseNegocioOnboarding({ codigo, nombreUsuario }) {
+  return await supabase.rpc('unirse_negocio_onboarding', {
+    p_codigo: codigo,
+    p_nombre_usuario: nombreUsuario,
+  })
+}
