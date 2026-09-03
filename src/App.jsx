@@ -7,6 +7,14 @@ import { obtenerProductos, crearProducto, eliminarProductoPorId, obtenerClientes
 
 
 
+// Iniciales para el avatar de cada cliente (1 o 2 letras).
+function inicialesDe(nombre) {
+  const partes = (nombre || '').trim().split(/\s+/).filter(Boolean)
+  if (partes.length === 0) return '?'
+  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase()
+  return (partes[0][0] + partes[1][0]).toUpperCase()
+}
+
 function App() {
   // --- Estado de sesión y negocio ---
   const [session, setSession] = useState(null)
@@ -430,8 +438,8 @@ function App() {
 
   if (cargando) {
     return (
-      <div style={{ padding: '2rem', fontFamily: 'sans-serif', textAlign: 'center' }}>
-        Cargando...
+      <div className="screen" style={{ textAlign: 'center', color: 'var(--ink-soft)' }}>
+        Cargando…
       </div>
     )
   }
@@ -454,321 +462,277 @@ function App() {
   }
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif', maxWidth: '550px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+    <div className="app">
+      <header className="topbar">
         <div>
-          <h1 style={{ marginBottom: '0.2rem' }}>Control de Créditos</h1>
-          {nombreNegocio && (
-            <p style={{ margin: 0, color: '#555', fontSize: '1rem' }}>
-              {nombreNegocio}
-              {rol === 'empleado' && <span style={{ color: '#888' }}> · empleado</span>}
-            </p>
-          )}
+          <div className="topbar-label">Tu negocio</div>
+          <div className="topbar-title">
+            {nombreNegocio || 'Control de Créditos'}
+            {rol === 'empleado' && <span className="topbar-role"> · empleado</span>}
+          </div>
         </div>
-        <button
-          onClick={cerrarSesion}
-          style={{ padding: '0.4rem 0.8rem', cursor: 'pointer', height: 'fit-content' }}
-        >
-          Cerrar sesión
-        </button>
-      </div>
+        <button className="topbar-logout" onClick={cerrarSesion}>Salir</button>
+      </header>
 
       {rol === 'duena' && codigoInvitacion && (
-        <div style={{ marginTop: '1rem', padding: '0.7rem 1rem', background: '#f0f4ff', border: '1px solid #b0c4ff', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-          <span style={{ fontSize: '0.9rem' }}>
-            Código para invitar empleados: <strong style={{ fontSize: '1.1rem', letterSpacing: '1px' }}>{codigoInvitacion}</strong>
+        <div className="invite">
+          <span className="invite-label">
+            Código para empleados: <span className="invite-code">{codigoInvitacion}</span>
           </span>
-          <button onClick={copiarCodigo} style={{ padding: '0.3rem 0.7rem', cursor: 'pointer' }}>
-            Copiar
-          </button>
+          <button className="invite-copy" onClick={copiarCodigo}>Copiar</button>
         </div>
       )}
 
-      {/* Sección plegable: gestionar el catálogo de productos */}
-      <div style={{ marginTop: '1.5rem' }}>
-        <button
-          onClick={() => setMostrarProductos(!mostrarProductos)}
-          style={{ padding: '0.4rem 0.8rem', cursor: 'pointer' }}
-        >
-          {mostrarProductos ? '▲ Ocultar productos' : '⚙ Gestionar productos'}
-        </button>
+      <div className="app-body">
+        {/* Hero: cuánto hay por cobrar */}
+        {clientesConDeuda.length > 0 ? (
+          <div className="hero hero-amber">
+            <div className="hero-label">Total por cobrar</div>
+            <div className="hero-amount">L {totalPendiente.toFixed(2)}</div>
+            <div className="hero-sub">
+              {clientesConDeuda.length} {clientesConDeuda.length === 1 ? 'cliente con saldo' : 'clientes con saldo'}
+            </div>
+          </div>
+        ) : (
+          <div className="hero hero-clear">
+            <span className="ico">✓</span>
+            <span className="hero-clear-text">Todo al día · nadie debe</span>
+          </div>
+        )}
 
-        {mostrarProductos && (
-          <div style={{ marginTop: '0.8rem', padding: '1rem', border: '1px solid #ccc', borderRadius: '8px' }}>
-            <h3 style={{ marginTop: 0 }}>Mis productos</h3>
+        {/* Registrar un fiado */}
+        <div className="card">
+          <div className="card-title">Registrar fiado</div>
 
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.8rem', flexWrap: 'wrap' }}>
+          <label className="field-label">Cliente</label>
+          <select className="select" value={clienteSel} onChange={(e) => setClienteSel(e.target.value)} style={{ marginBottom: '0.9rem' }}>
+            <option value="">Selecciona un cliente</option>
+            {clientes.map((c) => (
+              <option key={c.id} value={c.id}>{c.nombre}</option>
+            ))}
+            <option value="nuevo">+ Agregar cliente nuevo</option>
+          </select>
+
+          {clienteSel === 'nuevo' && (
+            <input
+              className="input"
+              type="text"
+              placeholder="Nombre del cliente nuevo"
+              value={nombreNuevo}
+              onChange={(e) => setNombreNuevo(e.target.value)}
+              style={{ marginBottom: '0.9rem' }}
+            />
+          )}
+
+          <label className="field-label">Agregar producto</label>
+          <div className="prod-row">
+            <select className="select" value={productoSel} onChange={(e) => setProductoSel(e.target.value)}>
+              <option value="">Selecciona un producto</option>
+              {productos.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre}{Number(p.precio) > 0 ? ` (L ${Number(p.precio).toFixed(2)})` : ''}
+                </option>
+              ))}
+              <option value="otro">Otro…</option>
+            </select>
+            <button className="btn" onClick={agregarAlCarrito}>Agregar</button>
+          </div>
+
+          {productoSel === 'otro' && (
+            <div className="prod-row">
               <input
+                className="input"
                 type="text"
                 placeholder="Nombre del producto"
-                value={nuevoProdNombre}
-                onChange={(e) => setNuevoProdNombre(e.target.value)}
-                style={{ flex: '2 1 150px', padding: '0.5rem' }}
+                value={productoOtro}
+                onChange={(e) => setProductoOtro(e.target.value)}
               />
               <input
+                className="input precio"
                 type="number"
                 placeholder="Precio (L)"
-                value={nuevoProdPrecio}
-                onChange={(e) => setNuevoProdPrecio(e.target.value)}
-                style={{ flex: '1 1 90px', padding: '0.5rem' }}
+                value={precioOtro}
+                onChange={(e) => setPrecioOtro(e.target.value)}
               />
-              <button onClick={agregarProducto} style={{ padding: '0.5rem 0.8rem', cursor: 'pointer' }}>
-                Agregar
-              </button>
-            </div>
-
-            {productos.length === 0 && (
-              <p style={{ fontSize: '0.9rem', color: '#777' }}>
-                Aún no tienes productos. Agrega los que vendes para que aparezcan al registrar un fiado.
-              </p>
-            )}
-            <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.9rem' }}>
-              {productos.map((p) => (
-                <li key={p.id} style={{ marginBottom: '0.3rem' }}>
-                  {p.nombre} — L {Number(p.precio).toFixed(2)}
-                  <button
-                    onClick={() => eliminarProducto(p.id)}
-                    style={{ marginLeft: '0.5rem', cursor: 'pointer', color: 'red', border: 'none', background: 'none' }}
-                    title="Eliminar producto"
-                  >
-                    🗑
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-
-      {/* Formulario para registrar un fiado con carrito */}
-      <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem', padding: '1rem', border: '1px solid #ccc', borderRadius: '8px' }}>
-        <h2>Registrar fiado</h2>
-
-        <label>Cliente:</label>
-        <select
-          value={clienteSel}
-          onChange={(e) => setClienteSel(e.target.value)}
-          style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem' }}
-        >
-          <option value="">-- Selecciona un cliente --</option>
-          {clientes.map((c) => (
-            <option key={c.id} value={c.id}>{c.nombre}</option>
-          ))}
-          <option value="nuevo">+ Agregar cliente nuevo</option>
-        </select>
-
-        {clienteSel === 'nuevo' && (
-          <input
-            type="text"
-            placeholder="Nombre del cliente nuevo"
-            value={nombreNuevo}
-            onChange={(e) => setNombreNuevo(e.target.value)}
-            style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem' }}
-          />
-        )}
-
-        <label>Agregar producto:</label>
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-          <select
-            value={productoSel}
-            onChange={(e) => setProductoSel(e.target.value)}
-            style={{ flex: '1 1 200px', padding: '0.5rem' }}
-          >
-            <option value="">-- Selecciona un producto --</option>
-            {productos.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nombre}{Number(p.precio) > 0 ? ` (L ${Number(p.precio).toFixed(2)})` : ''}
-              </option>
-            ))}
-            <option value="otro">Otro...</option>
-          </select>
-          <button onClick={agregarAlCarrito} style={{ padding: '0.5rem 0.9rem', cursor: 'pointer' }}>
-            + Agregar
-          </button>
-        </div>
-
-        {productoSel === 'otro' && (
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-            <input
-              type="text"
-              placeholder="Nombre del producto"
-              value={productoOtro}
-              onChange={(e) => setProductoOtro(e.target.value)}
-              style={{ flex: '2 1 150px', padding: '0.5rem' }}
-            />
-            <input
-              type="number"
-              placeholder="Precio (L)"
-              value={precioOtro}
-              onChange={(e) => setPrecioOtro(e.target.value)}
-              style={{ flex: '1 1 90px', padding: '0.5rem' }}
-            />
-          </div>
-        )}
-
-        {carrito.length > 0 && (
-          <div style={{ margin: '0.8rem 0', padding: '0.6rem 0.8rem', background: '#fafafa', border: '1px solid #ddd', borderRadius: '8px' }}>
-            <strong style={{ fontSize: '0.9rem' }}>Productos de este fiado:</strong>
-            <ul style={{ listStyle: 'none', padding: 0, margin: '0.5rem 0 0' }}>
-              {carrito.map((l, i) => (
-                <li key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', fontSize: '0.9rem' }}>
-                  <span style={{ flex: 1 }}>{l.nombre} — L {l.precio.toFixed(2)}</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <button onClick={() => cambiarCantidad(i, -1)} style={{ cursor: 'pointer', width: '26px', height: '26px' }}>−</button>
-                    <span style={{ minWidth: '20px', textAlign: 'center' }}>{l.cantidad}</span>
-                    <button onClick={() => cambiarCantidad(i, +1)} style={{ cursor: 'pointer', width: '26px', height: '26px' }}>+</button>
-                    <span style={{ minWidth: '70px', textAlign: 'right' }}>L {(l.precio * l.cantidad).toFixed(2)}</span>
-                    <button
-                      onClick={() => quitarDelCarrito(i)}
-                      style={{ cursor: 'pointer', color: 'red', border: 'none', background: 'none' }}
-                      title="Quitar"
-                    >
-                      🗑
-                    </button>
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <div style={{ textAlign: 'right', fontWeight: 'bold', marginTop: '0.4rem', borderTop: '1px solid #ddd', paddingTop: '0.4rem' }}>
-              Total: L {totalCarrito.toFixed(2)}
-            </div>
-          </div>
-        )}
-
-        <button onClick={registrarFiado} style={{ padding: '0.5rem 1rem', cursor: 'pointer', fontWeight: 'bold' }}>
-          Guardar fiado
-        </button>
-        {mensaje && <p style={{ marginTop: '0.5rem' }}>{mensaje}</p>}
-      </div>
-
-      {/* Lista de clientes con su saldo y detalle (solo los que deben algo) */}
-      <h2>Clientes con saldo pendiente</h2>
-      
-      {clientesConDeuda.length > 0 && (
-        <div style={{ marginBottom: '1rem', padding: '0.8rem 1rem', background: '#fff8e1', border: '1px solid #ffe082', borderRadius: '8px' }}>
-          <strong style={{ fontSize: '1.05rem' }}>Total por cobrar: L {totalPendiente.toFixed(2)}</strong>
-          <span style={{ color: '#777', fontSize: '0.85rem' }}>
-            {' '}({clientesConDeuda.length} {clientesConDeuda.length === 1 ? 'cliente' : 'clientes'})
-          </span>
-        </div>
-      )}
-
-      {/* Buscador: filtra conforme se escribe, sin acentos ni mayúsculas */}
-      {clientesConDeuda.length > 0 && (
-        <div style={{ position: 'relative', marginBottom: '1rem' }}>
-          <input
-            type="search"
-            placeholder="🔍 Buscar cliente por nombre..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            style={{ width: '100%', padding: '0.6rem', boxSizing: 'border-box', border: '1px solid #ccc', borderRadius: '8px', fontSize: '1rem' }}
-          />
-          {busqueda !== '' && (
-            <div style={{ fontSize: '0.85rem', color: '#777', marginTop: '0.3rem' }}>
-              {clientesFiltrados.length} de {clientesConDeuda.length} clientes
-              <button
-                onClick={() => setBusqueda('')}
-                style={{ marginLeft: '0.5rem', border: 'none', background: 'none', color: 'blue', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.85rem' }}
-              >
-                limpiar
-              </button>
             </div>
           )}
-        </div>
-      )}
 
-      {clientesConDeuda.length === 0 && (
-        <p>Ningún cliente tiene saldo pendiente.</p>
-      )}
-      {clientesConDeuda.length > 0 && clientesFiltrados.length === 0 && (
-        <p style={{ color: '#777' }}>Ningún cliente con saldo coincide con «{busqueda}».</p>
-      )}
-      {clientesFiltrados.map((c) => (
-        <div key={c.id} style={{ marginBottom: '1rem', padding: '0.8rem', border: '1px solid #eee', borderRadius: '8px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-            <span><strong>{c.nombre}</strong> — debe: L {c.saldo.toFixed(2)}</span>
-            <span style={{ display: 'flex', gap: '0.4rem' }}>
-              <button
-                onClick={() => alternarDetalle(c.id)}
-                style={{ padding: '0.3rem 0.7rem', cursor: 'pointer', background: '#f5f5f5', border: '1px solid #bbb', borderRadius: '6px' }}
-                title="Ver los movimientos de este cliente"
-              >
-                {detallesAbiertos.includes(c.id)
-                  ? '▲ Ocultar'
-                  : `▼ Detalle (${c.movimientos.length})`}
-              </button>
-              <button
-                onClick={() => registrarAbono(c)}
-                style={{ padding: '0.3rem 0.7rem', cursor: 'pointer', background: '#e8f5e9', border: '1px solid #66bb6a', borderRadius: '6px', color: '#2e7d32' }}
-                title="Registrar un pago de este cliente"
-              >
-                Abonar
-              </button>
-            </span>
+          {carrito.length > 0 && (
+            <div className="cart">
+              <div className="cart-title">Productos de este fiado</div>
+              <ul className="cart-list">
+                {carrito.map((l, i) => (
+                  <li key={i} className="cart-line">
+                    <span className="name">{l.nombre} — L {l.precio.toFixed(2)}</span>
+                    <button className="qty" onClick={() => cambiarCantidad(i, -1)}>−</button>
+                    <span className="qty-n">{l.cantidad}</span>
+                    <button className="qty" onClick={() => cambiarCantidad(i, +1)}>+</button>
+                    <span className="cart-sub">L {(l.precio * l.cantidad).toFixed(2)}</span>
+                    <button className="icon-del" onClick={() => quitarDelCarrito(i)} title="Quitar">🗑</button>
+                  </li>
+                ))}
+              </ul>
+              <div className="cart-total">Total: L {totalCarrito.toFixed(2)}</div>
+            </div>
+          )}
+
+          <button className="btn btn-primary btn-block btn-lg" onClick={registrarFiado} style={{ marginTop: '1rem' }}>
+            Guardar fiado
+          </button>
+          {mensaje && <p className="msg msg-ok">{mensaje}</p>}
+        </div>
+
+        {/* Lista de clientes que deben */}
+        <div className="section-title">Clientes que deben</div>
+
+        {clientesConDeuda.length > 0 && (
+          <div className="search">
+            <span className="ico">🔍</span>
+            <input
+              className="input"
+              type="search"
+              placeholder="Buscar cliente por nombre…"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+            />
+            {busqueda !== '' && (
+              <div className="search-meta">
+                {clientesFiltrados.length} de {clientesConDeuda.length} clientes
+                <button className="btn-quiet" onClick={() => setBusqueda('')} style={{ marginLeft: '0.5rem' }}>limpiar</button>
+              </div>
+            )}
           </div>
-          <ul style={{ marginTop: '0.4rem', fontSize: '0.9rem', display: detallesAbiertos.includes(c.id) ? 'block' : 'none' }}>
-            {c.movimientos.map((m) => (
-              <li key={m.id} style={{ marginBottom: '0.4rem' }}>
-                {formatFecha(m.fecha)} — {m.tipo === 'fiado' ? 'Fiado' : 'Abono'}: L {Number(m.monto).toFixed(2)}
-                {m.concepto ? ` (${m.concepto})` : ''}
-                {m.perfiles?.nombre && (
-                  <span style={{ color: '#888' }}> · por {m.perfiles.nombre}</span>
-                )}
-                <button
-                  onClick={() => eliminarMovimiento(m.id)}
-                  style={{ marginLeft: '0.5rem', cursor: 'pointer', color: 'red', border: 'none', background: 'none' }}
-                  title="Eliminar movimiento"
-                >
-                  🗑
-                </button>
-                {m.movimiento_detalle && m.movimiento_detalle.length > 0 && (
-                  <ul style={{ margin: '0.2rem 0 0', paddingLeft: '1.2rem', color: '#666', fontSize: '0.85rem' }}>
-                    {m.movimiento_detalle.map((d, i) => (
-                      <li key={i}>
-                        {d.cantidad}x {d.producto_nombre} — L {Number(d.precio_unitario).toFixed(2)} c/u
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+        )}
 
-      {/* Auditoría: movimientos eliminados (solo la dueña) */}
-      {rol === 'duena' && (
-        <div style={{ marginTop: '2rem' }}>
-          <button
-            onClick={() => setMostrarEliminados(!mostrarEliminados)}
-            style={{ padding: '0.4rem 0.8rem', cursor: 'pointer' }}
-          >
-            {mostrarEliminados ? '▲ Ocultar eliminados' : `🗑 Movimientos eliminados (${eliminados.length})`}
+        {clientesConDeuda.length === 0 && (
+          <p className="empty">Ningún cliente tiene saldo pendiente.</p>
+        )}
+        {clientesConDeuda.length > 0 && clientesFiltrados.length === 0 && (
+          <p className="empty">Ningún cliente con saldo coincide con «{busqueda}».</p>
+        )}
+
+        {clientesFiltrados.map((c) => (
+          <div key={c.id} className="client-row">
+            <div className="client-head">
+              <div className="avatar">{inicialesDe(c.nombre)}</div>
+              <div className="client-info">
+                <div className="client-name">{c.nombre}</div>
+                <div className="client-owes">debe <b>L {c.saldo.toFixed(2)}</b></div>
+              </div>
+              <div className="client-actions">
+                <button
+                  className="btn btn-sm"
+                  onClick={() => alternarDetalle(c.id)}
+                  title="Ver los movimientos de este cliente"
+                >
+                  {detallesAbiertos.includes(c.id) ? 'Ocultar' : `Detalle (${c.movimientos.length})`}
+                </button>
+                <button
+                  className="btn btn-sm btn-abonar"
+                  onClick={() => registrarAbono(c)}
+                  title="Registrar un pago de este cliente"
+                >
+                  Abonar
+                </button>
+              </div>
+            </div>
+            {detallesAbiertos.includes(c.id) && (
+              <ul className="movs">
+                {c.movimientos.map((m) => (
+                  <li key={m.id} className="mov">
+                    {formatFecha(m.fecha)} — {m.tipo === 'fiado' ? 'Fiado' : 'Abono'}: L {Number(m.monto).toFixed(2)}
+                    {m.concepto ? ` (${m.concepto})` : ''}
+                    {m.perfiles?.nombre && <span className="mov-by"> · por {m.perfiles.nombre}</span>}
+                    <button className="icon-del" onClick={() => eliminarMovimiento(m.id)} title="Eliminar movimiento" style={{ marginLeft: '0.4rem' }}>🗑</button>
+                    {m.movimiento_detalle && m.movimiento_detalle.length > 0 && (
+                      <ul className="mov-detalle">
+                        {m.movimiento_detalle.map((d, i) => (
+                          <li key={i}>
+                            {d.cantidad}x {d.producto_nombre} — L {Number(d.precio_unitario).toFixed(2)} c/u
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+
+        {/* Gestionar productos (colapsable) */}
+        <div className="collapse">
+          <button className="btn btn-block" onClick={() => setMostrarProductos(!mostrarProductos)}>
+            {mostrarProductos ? 'Ocultar productos' : '⚙ Gestionar productos'}
           </button>
 
-          {mostrarEliminados && (
-            <div style={{ marginTop: '0.8rem', padding: '1rem', border: '1px solid #f0c0c0', borderRadius: '8px', background: '#fdf7f7' }}>
-              <h3 style={{ marginTop: 0 }}>Registro de eliminados</h3>
-              {eliminados.length === 0 && (
-                <p style={{ fontSize: '0.9rem', color: '#777' }}>No se ha eliminado ningún movimiento.</p>
+          {mostrarProductos && (
+            <div className="collapse-panel">
+              <h3>Mis productos</h3>
+              <div className="prod-row">
+                <input
+                  className="input"
+                  type="text"
+                  placeholder="Nombre del producto"
+                  value={nuevoProdNombre}
+                  onChange={(e) => setNuevoProdNombre(e.target.value)}
+                />
+                <input
+                  className="input precio"
+                  type="number"
+                  placeholder="Precio (L)"
+                  value={nuevoProdPrecio}
+                  onChange={(e) => setNuevoProdPrecio(e.target.value)}
+                />
+                <button className="btn btn-primary" onClick={agregarProducto}>Agregar</button>
+              </div>
+
+              {productos.length === 0 && (
+                <p className="help">Aún no tienes productos. Agrega los que vendes para que aparezcan al registrar un fiado.</p>
               )}
-              <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.85rem', color: '#555' }}>
-                {eliminados.map((m) => (
-                  <li key={m.id} style={{ marginBottom: '0.5rem' }}>
-                    <strong>{m.nombreCliente}</strong> — {m.tipo === 'fiado' ? 'Fiado' : 'Abono'}: L {Number(m.monto).toFixed(2)}
-                    {m.concepto ? ` (${m.concepto})` : ''}
-                    <br />
-                    <span style={{ color: '#a33' }}>
-                      Eliminado el {formatFecha(m.eliminado_en)}
-                      {m.eliminador?.nombre ? ` por ${m.eliminador.nombre}` : ''}
-                    </span>
+              <ul className="prod-list">
+                {productos.map((p) => (
+                  <li key={p.id}>
+                    <span>{p.nombre} — L {Number(p.precio).toFixed(2)}</span>
+                    <button className="icon-del" onClick={() => eliminarProducto(p.id)} title="Eliminar producto">🗑</button>
                   </li>
                 ))}
               </ul>
             </div>
           )}
         </div>
-      )}
+
+        {/* Auditoría: movimientos eliminados (solo la dueña) */}
+        {rol === 'duena' && (
+          <div className="collapse">
+            <button className="btn btn-block" onClick={() => setMostrarEliminados(!mostrarEliminados)}>
+              {mostrarEliminados ? 'Ocultar eliminados' : `🗑 Movimientos eliminados (${eliminados.length})`}
+            </button>
+
+            {mostrarEliminados && (
+              <div className="collapse-panel audit-panel">
+                <h3>Registro de eliminados</h3>
+                {eliminados.length === 0 && (
+                  <p className="help">No se ha eliminado ningún movimiento.</p>
+                )}
+                <ul className="audit-list">
+                  {eliminados.map((m) => (
+                    <li key={m.id}>
+                      <strong>{m.nombreCliente}</strong> — {m.tipo === 'fiado' ? 'Fiado' : 'Abono'}: L {Number(m.monto).toFixed(2)}
+                      {m.concepto ? ` (${m.concepto})` : ''}
+                      <br />
+                      <span className="audit-when">
+                        Eliminado el {formatFecha(m.eliminado_en)}
+                        {m.eliminador?.nombre ? ` por ${m.eliminador.nombre}` : ''}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -881,110 +845,98 @@ function Auth() {
             : 'Enviar enlace'
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif', maxWidth: '400px', margin: '2rem auto' }}>
-      <h1>Control de Créditos</h1>
-      <div style={{ padding: '1.5rem', border: '1px solid #ccc', borderRadius: '8px' }}>
-        <h2>{titulo}</h2>
+    <div className="screen">
+      <div className="brand">
+        <div className="brand-mark">📓</div>
+        <div className="brand-name">Control de Créditos</div>
+      </div>
+      <div className="card">
+        <div className="card-title">{titulo}</div>
 
         {(modo === 'crear' || modo === 'unir') && (
-          <>
-            <label>Tu nombre:</label>
+          <div className="field">
+            <label className="field-label">Tu nombre</label>
             <input
+              className="input"
               type="text"
-              placeholder="Ej. Carlos Pérez"
+              placeholder="Carlos Pérez"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
-              style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem' }}
             />
-          </>
+          </div>
         )}
 
         {modo === 'crear' && (
-          <>
-            <label>Nombre del negocio:</label>
+          <div className="field">
+            <label className="field-label">Nombre del negocio</label>
             <input
+              className="input"
               type="text"
-              placeholder="Ej. Cafetería La Esquina"
+              placeholder="Cafetería La Esquina"
               value={nombreNegocio}
               onChange={(e) => setNombreNegocio(e.target.value)}
-              style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem' }}
             />
-          </>
+          </div>
         )}
 
         {modo === 'unir' && (
-          <>
-            <label>Código de invitación:</label>
+          <div className="field">
+            <label className="field-label">Código de invitación</label>
             <input
+              className="input upper"
               type="text"
-              placeholder="Ej. A3F9K2"
+              placeholder="A3F9K2"
               value={codigo}
               onChange={(e) => setCodigo(e.target.value)}
-              style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem', textTransform: 'uppercase' }}
             />
-          </>
+          </div>
         )}
 
-        <label>Correo:</label>
-        <input
-          type="email"
-          autoComplete="email"
-          placeholder="correo@ejemplo.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem' }}
-        />
+        <div className="field">
+          <label className="field-label">Correo</label>
+          <input
+            className="input"
+            type="email"
+            autoComplete="email"
+            placeholder="correo@ejemplo.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
 
         {modo !== 'recuperar' && (
-          <>
-            <label>Contraseña:</label>
+          <div className="field">
+            <label className="field-label">Contraseña</label>
             <input
+              className="input"
               type="password"
               autoComplete={modo === 'login' ? 'current-password' : 'new-password'}
               placeholder="Mínimo 6 caracteres"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              style={{ display: 'block', width: '100%', marginBottom: '0.3rem', padding: '0.5rem' }}
             />
             {modo === 'login' && (
-              <div style={{ textAlign: 'right', marginBottom: '0.6rem' }}>
-                <button
-                  onClick={() => { setModo('recuperar'); setError(''); setAviso('') }}
-                  style={{ border: 'none', background: 'none', color: 'blue', cursor: 'pointer', fontSize: '0.85rem', textDecoration: 'underline' }}
-                >
+              <div style={{ textAlign: 'right', marginTop: '0.5rem' }}>
+                <button className="btn-quiet btn-muted" onClick={() => { setModo('recuperar'); setError(''); setAviso('') }}>
                   ¿Olvidaste tu contraseña?
                 </button>
               </div>
             )}
-          </>
+          </div>
         )}
 
         {modo === 'recuperar' && (
-          <p style={{ fontSize: '0.85rem', color: '#555', marginTop: '0.3rem' }}>
-            Te enviaremos un enlace a tu correo para crear una contraseña nueva.
-          </p>
+          <p className="help">Te enviaremos un enlace a tu correo para crear una contraseña nueva.</p>
         )}
 
-        <button
-          onClick={accionPrincipal}
-          disabled={procesando}
-          style={{ padding: '0.5rem 1rem', cursor: 'pointer', width: '100%', marginTop: '0.5rem' }}
-        >
+        <button className="btn btn-primary btn-block btn-lg" onClick={accionPrincipal} disabled={procesando} style={{ marginTop: '0.4rem' }}>
           {textoBoton}
         </button>
 
         {modo !== 'recuperar' && (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0.9rem 0', color: '#999', fontSize: '0.85rem' }}>
-              <span style={{ flex: 1, height: '1px', background: '#ddd' }} />
-              o
-              <span style={{ flex: 1, height: '1px', background: '#ddd' }} />
-            </div>
-            <button
-              onClick={entrarConGoogle}
-              disabled={procesando}
-              style={{ padding: '0.5rem 1rem', cursor: 'pointer', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: '#fff', border: '1px solid #ccc', borderRadius: '4px', fontWeight: 500 }}
-            >
+            <div className="divider">o</div>
+            <button className="btn btn-google btn-block" onClick={entrarConGoogle} disabled={procesando}>
               <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
                 <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
                 <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
@@ -996,42 +948,18 @@ function Auth() {
           </>
         )}
 
-        {error && <p style={{ marginTop: '0.5rem', color: 'red' }}>{error}</p>}
-        {aviso && <p style={{ marginTop: '0.5rem', color: '#2e7d32' }}>{aviso}</p>}
+        {error && <p className="msg msg-error">{error}</p>}
+        {aviso && <p className="msg msg-ok">{aviso}</p>}
 
-        <div style={{ marginTop: '1rem', fontSize: '0.9rem', lineHeight: '1.8' }}>
+        <div className="switch-links">
           {modo !== 'login' && (
-            <div>
-              ¿Ya tienes cuenta?{' '}
-              <button
-                onClick={() => { setModo('login'); setError(''); setAviso('') }}
-                style={{ border: 'none', background: 'none', color: 'blue', cursor: 'pointer', textDecoration: 'underline' }}
-              >
-                Inicia sesión
-              </button>
-            </div>
+            <div>¿Ya tienes cuenta? <button className="btn-quiet" onClick={() => { setModo('login'); setError(''); setAviso('') }}>Inicia sesión</button></div>
           )}
           {modo !== 'crear' && modo !== 'recuperar' && (
-            <div>
-              ¿Vas a abrir un negocio nuevo?{' '}
-              <button
-                onClick={() => { setModo('crear'); setError(''); setAviso('') }}
-                style={{ border: 'none', background: 'none', color: 'blue', cursor: 'pointer', textDecoration: 'underline' }}
-              >
-                Registra tu negocio
-              </button>
-            </div>
+            <div>¿Vas a abrir un negocio? <button className="btn-quiet" onClick={() => { setModo('crear'); setError(''); setAviso('') }}>Regístralo</button></div>
           )}
           {modo !== 'unir' && modo !== 'recuperar' && (
-            <div>
-              ¿Te invitaron a un negocio?{' '}
-              <button
-                onClick={() => { setModo('unir'); setError(''); setAviso('') }}
-                style={{ border: 'none', background: 'none', color: 'blue', cursor: 'pointer', textDecoration: 'underline' }}
-              >
-                Unirme con código
-              </button>
-            </div>
+            <div>¿Te invitaron a un negocio? <button className="btn-quiet" onClick={() => { setModo('unir'); setError(''); setAviso('') }}>Unirme con código</button></div>
           )}
         </div>
       </div>
@@ -1094,98 +1022,83 @@ function Onboarding({ nombreSugerido, onListo }) {
     await supabase.auth.signOut()
   }
 
-  const inputStyle = { display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem' }
-
   return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif', maxWidth: '400px', margin: '2rem auto' }}>
-      <h1>Control de Créditos</h1>
-      <div style={{ padding: '1.5rem', border: '1px solid #ccc', borderRadius: '8px' }}>
-        <h2>¡Bienvenido/a!</h2>
-        <p style={{ color: '#555', fontSize: '0.95rem' }}>
-          Para terminar, contanos cómo vas a usar la app.
-        </p>
+    <div className="screen">
+      <div className="brand">
+        <div className="brand-mark">📓</div>
+        <div className="brand-name">Control de Créditos</div>
+      </div>
+      <div className="card">
+        <div className="card-title">¡Bienvenido/a!</div>
+        <p className="help" style={{ marginBottom: '1rem' }}>Para terminar, cuéntanos cómo vas a usar la app.</p>
 
         {modo === 'elegir' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '1rem' }}>
-            <button
-              onClick={() => { setModo('crear'); setError('') }}
-              style={{ padding: '0.7rem 1rem', cursor: 'pointer' }}
-            >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+            <button className="btn btn-primary btn-block btn-lg" onClick={() => { setModo('crear'); setError('') }}>
               Abrir un negocio nuevo
             </button>
-            <button
-              onClick={() => { setModo('unir'); setError('') }}
-              style={{ padding: '0.7rem 1rem', cursor: 'pointer' }}
-            >
-              Unirme con un código de invitación
+            <button className="btn btn-block btn-lg" onClick={() => { setModo('unir'); setError('') }}>
+              Unirme con un código
             </button>
           </div>
         )}
 
         {(modo === 'crear' || modo === 'unir') && (
-          <>
-            <label>Tu nombre:</label>
+          <div className="field">
+            <label className="field-label">Tu nombre</label>
             <input
+              className="input"
               type="text"
-              placeholder="Ej. Carlos Pérez"
+              placeholder="Carlos Pérez"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
-              style={inputStyle}
             />
-          </>
+          </div>
         )}
 
         {modo === 'crear' && (
           <>
-            <label>Nombre del negocio:</label>
-            <input
-              type="text"
-              placeholder="Ej. Cafetería La Esquina"
-              value={nombreNegocio}
-              onChange={(e) => setNombreNegocio(e.target.value)}
-              style={inputStyle}
-            />
-            <button onClick={crear} disabled={procesando} style={{ padding: '0.5rem 1rem', cursor: 'pointer', width: '100%', marginTop: '0.3rem' }}>
-              {procesando ? 'Creando...' : 'Crear mi negocio'}
+            <div className="field">
+              <label className="field-label">Nombre del negocio</label>
+              <input
+                className="input"
+                type="text"
+                placeholder="Cafetería La Esquina"
+                value={nombreNegocio}
+                onChange={(e) => setNombreNegocio(e.target.value)}
+              />
+            </div>
+            <button className="btn btn-primary btn-block btn-lg" onClick={crear} disabled={procesando}>
+              {procesando ? 'Creando…' : 'Crear mi negocio'}
             </button>
           </>
         )}
 
         {modo === 'unir' && (
           <>
-            <label>Código de invitación:</label>
-            <input
-              type="text"
-              placeholder="Ej. A3F9K2"
-              value={codigo}
-              onChange={(e) => setCodigo(e.target.value)}
-              style={{ ...inputStyle, textTransform: 'uppercase' }}
-            />
-            <button onClick={unir} disabled={procesando} style={{ padding: '0.5rem 1rem', cursor: 'pointer', width: '100%', marginTop: '0.3rem' }}>
-              {procesando ? 'Uniendo...' : 'Unirme al negocio'}
+            <div className="field">
+              <label className="field-label">Código de invitación</label>
+              <input
+                className="input upper"
+                type="text"
+                placeholder="A3F9K2"
+                value={codigo}
+                onChange={(e) => setCodigo(e.target.value)}
+              />
+            </div>
+            <button className="btn btn-primary btn-block btn-lg" onClick={unir} disabled={procesando}>
+              {procesando ? 'Uniendo…' : 'Unirme al negocio'}
             </button>
           </>
         )}
 
-        {error && <p style={{ marginTop: '0.5rem', color: 'red' }}>{error}</p>}
+        {error && <p className="msg msg-error">{error}</p>}
 
-        <div style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
+        <div className="switch-links">
           {modo !== 'elegir' && (
-            <button
-              onClick={() => { setModo('elegir'); setError('') }}
-              style={{ border: 'none', background: 'none', color: 'blue', cursor: 'pointer', textDecoration: 'underline' }}
-            >
-              ← Volver
-            </button>
+            <div><button className="btn-quiet" onClick={() => { setModo('elegir'); setError('') }}>← Volver</button></div>
           )}
-          <div style={{ marginTop: '0.6rem' }}>
-            <button
-              onClick={salir}
-              style={{ border: 'none', background: 'none', color: '#888', cursor: 'pointer', textDecoration: 'underline' }}
-            >
-              Cerrar sesión
-            </button>
-          </div>
+          <div><button className="btn-quiet btn-muted" onClick={salir}>Cerrar sesión</button></div>
         </div>
       </div>
     </div>
@@ -1225,41 +1138,44 @@ function NuevaPassword({ onListo }) {
   }
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif', maxWidth: '400px', margin: '2rem auto' }}>
-      <h1>Control de Créditos</h1>
-      <div style={{ padding: '1.5rem', border: '1px solid #ccc', borderRadius: '8px' }}>
-        <h2>Nueva contraseña</h2>
+    <div className="screen">
+      <div className="brand">
+        <div className="brand-mark">📓</div>
+        <div className="brand-name">Control de Créditos</div>
+      </div>
+      <div className="card">
+        <div className="card-title">Nueva contraseña</div>
 
-        <label>Contraseña nueva:</label>
-        <input
-          type="password"
-          autoComplete="new-password"
-          placeholder="Mínimo 6 caracteres"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.5rem' }}
-        />
+        <div className="field">
+          <label className="field-label">Contraseña nueva</label>
+          <input
+            className="input"
+            type="password"
+            autoComplete="new-password"
+            placeholder="Mínimo 6 caracteres"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
 
-        <label>Repite la contraseña:</label>
-        <input
-          type="password"
-          autoComplete="new-password"
-          placeholder="Escríbela de nuevo"
-          value={password2}
-          onChange={(e) => setPassword2(e.target.value)}
-          style={{ display: 'block', width: '100%', marginBottom: '0.8rem', padding: '0.5rem' }}
-        />
+        <div className="field">
+          <label className="field-label">Repite la contraseña</label>
+          <input
+            className="input"
+            type="password"
+            autoComplete="new-password"
+            placeholder="Escríbela de nuevo"
+            value={password2}
+            onChange={(e) => setPassword2(e.target.value)}
+          />
+        </div>
 
-        <button
-          onClick={guardarPassword}
-          disabled={procesando}
-          style={{ padding: '0.5rem 1rem', cursor: 'pointer', width: '100%' }}
-        >
-          {procesando ? 'Guardando...' : 'Guardar contraseña'}
+        <button className="btn btn-primary btn-block btn-lg" onClick={guardarPassword} disabled={procesando}>
+          {procesando ? 'Guardando…' : 'Guardar contraseña'}
         </button>
 
-        {error && <p style={{ marginTop: '0.5rem', color: 'red' }}>{error}</p>}
-        {aviso && <p style={{ marginTop: '0.5rem', color: '#2e7d32' }}>{aviso}</p>}
+        {error && <p className="msg msg-error">{error}</p>}
+        {aviso && <p className="msg msg-ok">{aviso}</p>}
       </div>
     </div>
   )

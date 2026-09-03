@@ -1,68 +1,310 @@
+/* ============================================================
+   Control de Créditos — sistema de diseño
+   "La libreta de fiados, digital." Mobile-first.
+   ============================================================ */
+
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  /* Colores */
+  --bg: #FBF9F5;          /* fondo blanco cálido */
+  --surface: #FFFFFF;     /* tarjetas */
+  --ink: #1C1A17;         /* texto principal (negro cálido) */
+  --ink-soft: #6B655C;    /* texto secundario */
+  --ink-faint: #A79F92;   /* placeholders, notas */
+  --green: #15734B;       /* color de acción */
+  --green-strong: #115E3D;
+  --green-dark: #0C4A30;
+  --green-tint: #E6F0EA;
+  --amber: #B45309;       /* por cobrar */
+  --amber-dark: #8A5410;
+  --amber-tint: #FDF0DC;
+  --danger: #B23B2E;      /* eliminar / errores */
+  --danger-tint: #FBEDEB;
+  --border: #ECE7DE;      /* líneas suaves */
+  --border-input: #E2DCD1;
+
+  --radius: 14px;
+  --radius-sm: 11px;
+  --radius-pill: 999px;
+
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
   line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
+* { box-sizing: border-box; }
 
-body {
+html, body {
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  padding: 0;
   min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+#root { width: 100%; }
+
+h1, h2, h3 { margin: 0; letter-spacing: -0.01em; color: var(--ink); }
+
+/* ---------- Contenedores de pantalla ---------- */
+
+.screen {                         /* login / onboarding / contraseña */
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 2.2rem 1.2rem 3rem;
+}
+.app {                            /* dashboard */
+  max-width: 560px;
+  margin: 0 auto;
+  padding-bottom: 3rem;
+}
+.app-body { padding: 0 1rem; }
+
+/* ---------- Marca ---------- */
+
+.brand { text-align: center; margin-bottom: 1.4rem; }
+.brand-mark {
+  width: 54px; height: 54px; border-radius: 16px;
+  background: var(--green); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; margin: 0 auto 12px;
+}
+.brand-name {
+  font-size: 1.5rem; font-weight: 800; line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
+/* ---------- Tarjeta ---------- */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1.3rem 1.25rem;
 }
-button:hover {
-  border-color: #646cff;
+.card + .card, .app-body > * + * { margin-top: 1.1rem; }
+
+.card-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 1rem; }
+
+/* ---------- Campos ---------- */
+
+.field-label {
+  display: block;
+  font-size: 0.82rem; font-weight: 600; color: var(--ink-soft);
+  margin: 0 0 6px;
 }
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+.input, .select {
+  display: block; width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  font-family: inherit; font-size: 1rem; color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.select { appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' stroke='%236B655C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; padding-right: 40px; cursor: pointer;
+}
+.input::placeholder { color: var(--ink-faint); }
+.input:focus, .select:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(21,115,75,0.12);
+}
+.input + .input, .input + .select, .select + .input, .field-label { margin-top: 0; }
+.field { margin-bottom: 0.9rem; }
+.upper { text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* ---------- Botones ---------- */
+
+.btn {
+  font-family: inherit; font-size: 1rem; font-weight: 600;
+  border: 1px solid var(--border-input);
+  background: var(--surface); color: var(--ink);
+  border-radius: var(--radius-sm);
+  padding: 0 16px; height: 46px;
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  transition: background .15s, border-color .15s, transform .05s;
+}
+.btn:active { transform: scale(0.985); }
+.btn:disabled { opacity: 0.6; cursor: default; }
+.btn-block { width: 100%; }
+.btn-lg { height: 52px; font-size: 1.05rem; font-weight: 700; }
+
+.btn-primary {
+  background: var(--green); color: #fff; border-color: var(--green);
+}
+.btn-primary:hover:not(:disabled) { background: var(--green-strong); border-color: var(--green-strong); }
+
+.btn-google { background: #fff; }
+.btn-google:hover:not(:disabled) { background: #FAF8F4; }
+
+.btn-sm { height: 38px; font-size: 0.9rem; padding: 0 13px; border-radius: 10px; }
+
+.btn-abonar {
+  background: var(--green-tint); color: var(--green-dark);
+  border-color: transparent;
+}
+.btn-abonar:hover { background: #D8E9DF; }
+
+.btn-quiet {                      /* botón tipo enlace */
+  background: none; border: none; padding: 0;
+  color: var(--green); font-weight: 600; font-size: inherit;
+  cursor: pointer; text-decoration: none;
+}
+.btn-quiet:hover { text-decoration: underline; }
+.btn-muted { color: var(--ink-soft); }
+
+.icon-del {                       /* papelera */
+  background: none; border: none; cursor: pointer;
+  color: var(--danger); padding: 4px; font-size: 1rem; line-height: 1;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+/* ---------- Separador "o" ---------- */
+
+.divider {
+  display: flex; align-items: center; gap: 12px;
+  color: var(--ink-faint); font-size: 0.85rem; margin: 1rem 0;
 }
+.divider::before, .divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* ---------- Mensajes ---------- */
+
+.msg { margin: 0.7rem 0 0; font-size: 0.9rem; }
+.msg-error { color: var(--danger); }
+.msg-ok { color: var(--green); font-weight: 600; }
+.help { color: var(--ink-soft); font-size: 0.88rem; margin: 0.3rem 0 0; }
+
+/* ---------- Enlaces al pie de tarjeta ---------- */
+
+.switch-links { margin-top: 1.1rem; font-size: 0.92rem; line-height: 2; }
+
+/* ============================================================
+   Dashboard
+   ============================================================ */
+
+.topbar {
+  background: var(--green);
+  color: #fff;
+  padding: 1.15rem 1.1rem 1.25rem;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+}
+.topbar-label { font-size: 0.78rem; font-weight: 500; color: #A7D6BD; }
+.topbar-title { font-size: 1.3rem; font-weight: 800; letter-spacing: -0.01em; margin-top: 1px; }
+.topbar-role { font-weight: 500; color: #A7D6BD; font-size: 0.95rem; }
+.topbar-logout {
+  background: rgba(255,255,255,0.15); border: none; color: #fff;
+  font-family: inherit; font-size: 0.85rem; font-weight: 600;
+  padding: 8px 13px; border-radius: 10px; cursor: pointer; white-space: nowrap;
+}
+.topbar-logout:hover { background: rgba(255,255,255,0.24); }
+
+.invite {
+  background: var(--green-strong); color: #fff;
+  padding: 11px 1.1rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+}
+.invite-label { font-size: 0.85rem; color: #CDEBDB; }
+.invite-code { font-weight: 700; letter-spacing: 0.08em; font-size: 1.05rem; }
+.invite-copy {
+  background: rgba(255,255,255,0.16); border: none; color: #fff;
+  font-family: inherit; font-size: 0.82rem; font-weight: 600;
+  padding: 6px 12px; border-radius: 9px; cursor: pointer;
+}
+.invite-copy:hover { background: rgba(255,255,255,0.26); }
+
+.app-body { padding-top: 1.1rem; }
+
+/* Hero: total por cobrar */
+.hero {
+  border-radius: 18px; padding: 1.1rem 1.25rem;
+}
+.hero-amber { background: var(--amber-tint); }
+.hero-label { font-size: 0.86rem; font-weight: 700; color: var(--amber-dark); }
+.hero-amount { font-size: 2.1rem; font-weight: 800; color: var(--amber); letter-spacing: -0.02em; line-height: 1.1; margin-top: 2px; }
+.hero-sub { font-size: 0.82rem; color: #A9762E; margin-top: 2px; }
+.hero-clear { background: var(--green-tint); display: flex; align-items: center; gap: 10px; }
+.hero-clear .ico { color: var(--green); font-size: 22px; }
+.hero-clear-text { font-weight: 700; color: var(--green-dark); }
+
+.section-title { font-size: 1.05rem; font-weight: 700; margin: 1.5rem 2px 0.8rem; }
+
+/* Fila de cliente */
+.client-row {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 0.85rem 0.95rem; margin-bottom: 0.7rem;
+}
+.client-head { display: flex; align-items: center; gap: 12px; }
+.avatar {
+  width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+  background: var(--green-tint); color: var(--green);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.95rem;
+}
+.client-info { flex: 1; min-width: 0; }
+.client-name { font-size: 1rem; font-weight: 600; }
+.client-owes { font-size: 0.88rem; color: var(--ink-soft); }
+.client-owes b { color: var(--amber); font-weight: 700; }
+.client-actions { display: flex; gap: 7px; flex-shrink: 0; }
+
+.movs { list-style: none; margin: 0.8rem 0 0; padding: 0.8rem 0 0; border-top: 1px solid var(--border); font-size: 0.9rem; }
+.mov { margin-bottom: 0.6rem; color: var(--ink); }
+.mov-by { color: var(--ink-faint); }
+.mov-detalle { margin: 0.2rem 0 0; padding-left: 1.1rem; color: var(--ink-soft); font-size: 0.85rem; }
+
+.empty { color: var(--ink-soft); font-size: 0.95rem; }
+
+/* Buscador */
+.search { position: relative; margin: 0 0 0.9rem; }
+.search .input { padding-left: 40px; }
+.search .ico {
+  position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+  color: var(--ink-faint); font-size: 19px; pointer-events: none;
+}
+.search-meta { font-size: 0.83rem; color: var(--ink-soft); margin-top: 0.35rem; }
+
+/* Productos */
+.prod-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 0.9rem; }
+.prod-row .input { flex: 2 1 150px; }
+.prod-row .input.precio { flex: 1 1 90px; }
+.prod-list { list-style: none; margin: 0; padding: 0; }
+.prod-list li {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.55rem 0; border-top: 1px solid var(--border); font-size: 0.95rem;
+}
+.prod-list li:first-child { border-top: none; }
+
+/* Carrito */
+.cart {
+  margin: 0.9rem 0; padding: 0.9rem 1rem;
+  background: #FAF8F3; border: 1px solid var(--border); border-radius: 14px;
+}
+.cart-title { font-size: 0.88rem; font-weight: 700; color: var(--ink-soft); }
+.cart-list { list-style: none; padding: 0; margin: 0.6rem 0 0; }
+.cart-line { display: flex; align-items: center; gap: 8px; margin-bottom: 0.5rem; font-size: 0.95rem; }
+.cart-line .name { flex: 1; min-width: 0; }
+.qty { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border-input); background: #fff; cursor: pointer; font-size: 1.1rem; line-height: 1; color: var(--ink); }
+.qty-n { min-width: 22px; text-align: center; font-weight: 600; }
+.cart-sub { min-width: 74px; text-align: right; font-weight: 600; }
+.cart-total { text-align: right; font-weight: 800; margin-top: 0.5rem; padding-top: 0.6rem; border-top: 1px solid var(--border); }
+
+/* Colapsables secundarios */
+.collapse { margin-top: 1.1rem; }
+.collapse-panel {
+  margin-top: 0.7rem; padding: 1.1rem 1.15rem;
+  border: 1px solid var(--border); border-radius: 16px; background: var(--surface);
+}
+.collapse-panel h3 { font-size: 1.05rem; font-weight: 700; margin: 0 0 0.9rem; }
+
+/* Auditoría */
+.audit-panel { background: var(--danger-tint); border-color: #F0D2CE; }
+.audit-list { list-style: none; margin: 0; padding: 0; font-size: 0.88rem; }
+.audit-list li { padding: 0.55rem 0; border-top: 1px solid #F0D2CE; color: var(--ink-soft); }
+.audit-list li:first-child { border-top: none; }
+.audit-when { color: var(--danger); }
