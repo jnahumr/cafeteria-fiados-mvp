@@ -7,14 +7,28 @@ import { obtenerProductos, crearProducto, eliminarProductoPorId, obtenerClientes
 
 
 
+// Devuelve solo los movimientos posteriores a la última vez que la cuenta
+// quedó en cero (el último abono que saldó todo). Sin ese abono ni lo anterior.
+// Es lo que se envía por WhatsApp: la deuda vigente y su detalle, no el historial.
+function movimientosDesdeUltimoCero(movimientos) {
+  const orden = [...(movimientos || [])].sort(
+    (a, b) => new Date(a.fecha) - new Date(b.fecha)
+  )
+  let saldo = 0
+  let corte = -1 // índice tras el cual la cuenta quedó en cero (o negativa)
+  orden.forEach((m, i) => {
+    saldo += m.tipo === 'abono' ? -Number(m.monto) : Number(m.monto)
+    if (saldo <= 0.005) corte = i
+  })
+  return orden.slice(corte + 1)
+}
+
 // Arma el mensaje de cobro con el detalle de consumos, fechas y el total.
 // Incluye los abonos (con signo) para que la suma cuadre con el saldo real.
 function mensajeCobro(cliente, nombreNegocio) {
   const negocio = nombreNegocio || 'nuestro negocio'
 
-  const movs = [...(cliente.movimientos || [])].sort(
-    (a, b) => new Date(a.fecha) - new Date(b.fecha)
-  )
+  const movs = movimientosDesdeUltimoCero(cliente.movimientos)
 
   const lineas = movs.map((m) => {
     const fecha = formatFechaCorta(m.fecha)
@@ -1292,7 +1306,7 @@ function ClienteDetalle({ cliente, onVolver, onWhatsapp, onAbonar, onGuardar, on
       <ul className="movs movs-standalone">
         {cliente.movimientos.map((m) => (
           <li key={m.id} className="mov">
-            {formatFechaCorta(m.fecha)} — {m.tipo === 'fiado' ? 'Fiado' : 'Abono'}: L {Number(m.monto).toFixed(2)}
+            {formatFecha(m.fecha)} — {m.tipo === 'fiado' ? 'Fiado' : 'Abono'}: L {Number(m.monto).toFixed(2)}
             {m.concepto ? ` (${m.concepto})` : ''}
             {m.perfiles?.nombre && <span className="mov-by"> · por {m.perfiles.nombre}</span>}
             <button className="icon-del" onClick={() => onEliminarMov(m.id)} title="Eliminar movimiento" style={{ marginLeft: '0.4rem' }}>🗑</button>
