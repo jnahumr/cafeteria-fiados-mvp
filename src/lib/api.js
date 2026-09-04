@@ -65,6 +65,14 @@ export async function actualizarTelefonoCliente({ clienteId, telefono }) {
     .eq('id', clienteId)
 }
 
+// Actualiza el nombre y el teléfono de un cliente (edición desde su detalle).
+export async function actualizarCliente({ clienteId, nombre, telefono }) {
+  return await supabase
+    .from('clientes')
+    .update({ nombre, telefono })
+    .eq('id', clienteId)
+}
+
 // Registra un movimiento de tipo 'fiado' y devuelve su fila (necesitamos el id
 // para colgarle el detalle). El 'tipo' va fijo aquí porque esta función es solo
 // para fiados.

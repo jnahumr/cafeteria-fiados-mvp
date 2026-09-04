@@ -2,10 +2,47 @@ import { useEffect, useState } from 'react'
 import { supabase } from './supabaseClient'
 import { calcularSaldoCliente, buscarClienteExistente } from './lib/creditos'
 import { sinAcentos } from './lib/texto'
-import { formatFecha } from './lib/fecha'
-import { obtenerProductos, crearProducto, eliminarProductoPorId, obtenerClientes, obtenerMovimientos, crearCliente, actualizarTelefonoCliente, crearMovimientoFiado, crearDetalleMovimiento, crearAbono, marcarMovimientoEliminado, crearNegocioOnboarding, unirseNegocioOnboarding } from './lib/api'
+import { formatFecha, formatFechaCorta } from './lib/fecha'
+import { obtenerProductos, crearProducto, eliminarProductoPorId, obtenerClientes, obtenerMovimientos, crearCliente, actualizarCliente, crearMovimientoFiado, crearDetalleMovimiento, crearAbono, marcarMovimientoEliminado, crearNegocioOnboarding, unirseNegocioOnboarding } from './lib/api'
 
 
+
+// Arma el mensaje de cobro con el detalle de consumos, fechas y el total.
+// Incluye los abonos (con signo) para que la suma cuadre con el saldo real.
+function mensajeCobro(cliente, nombreNegocio) {
+  const negocio = nombreNegocio || 'nuestro negocio'
+
+  const movs = [...(cliente.movimientos || [])].sort(
+    (a, b) => new Date(a.fecha) - new Date(b.fecha)
+  )
+
+  const lineas = movs.map((m) => {
+    const fecha = formatFechaCorta(m.fecha)
+    const monto = Number(m.monto).toFixed(2)
+    if (m.tipo === 'abono') {
+      return `${fecha} — Abono: -L ${monto}`
+    }
+    let desc
+    if (m.movimiento_detalle && m.movimiento_detalle.length > 0) {
+      desc = m.movimiento_detalle
+        .map((d) => `${d.cantidad}x ${d.producto_nombre}`)
+        .join(', ')
+    } else {
+      desc = m.concepto || 'Consumo'
+    }
+    return `${fecha} — ${desc}: L ${monto}`
+  })
+
+  const detalle = lineas.length > 0 ? '\n' + lineas.join('\n') + '\n' : '\n'
+
+  return (
+    `Buen día ${cliente.nombre}, le saludamos de ${negocio}, para recordarle que ` +
+    `tiene un saldo pendiente con nosotros. El detalle es el siguiente:\n` +
+    detalle +
+    `\n*Total pendiente: L ${cliente.saldo.toFixed(2)}*\n\n` +
+    `Gracias por su preferencia.`
+  )
+}
 
 // Normaliza un teléfono para el enlace de WhatsApp (formato internacional
 // sin símbolos). Honduras: si vienen 8 dígitos, se antepone el código 504.
@@ -23,6 +60,32 @@ function inicialesDe(nombre) {
   if (partes.length === 0) return '?'
   if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase()
   return (partes[0][0] + partes[1][0]).toUpperCase()
+}
+
+// Secciones del menú (barra lateral en PC, barra inferior en celular).
+const NAV = [
+  { id: 'inicio', label: 'Inicio', icon: 'home' },
+  { id: 'clientes', label: 'Clientes', icon: 'users' },
+  { id: 'productos', label: 'Productos', icon: 'tag' },
+  { id: 'ajustes', label: 'Ajustes', icon: 'settings' },
+]
+
+// Íconos SVG en línea (trazo con color heredado).
+function Icono({ name }) {
+  const p = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true }
+  switch (name) {
+    case 'home': return (<svg {...p}><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9v11h14V9" /></svg>)
+    case 'users': return (<svg {...p}><circle cx="9" cy="8" r="3.2" /><path d="M3.5 20a5.5 5.5 0 0 1 11 0" /><path d="M16 5.6a3 3 0 0 1 0 5.6" /><path d="M17.5 20a5.5 5.5 0 0 0-3-4.9" /></svg>)
+    case 'tag': return (<svg {...p}><path d="M3 12V4h8l9 9-8 8z" /><circle cx="7.5" cy="7.5" r="1.4" fill="currentColor" stroke="none" /></svg>)
+    case 'settings': return (<svg {...p}><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" /></svg>)
+    case 'notebook': return (<svg {...p}><rect x="6" y="3" width="14" height="18" rx="2" /><path d="M6 8H3M6 12H3M6 16H3" /></svg>)
+    case 'chevron': return (<svg {...p}><path d="M9 6l6 6-6 6" /></svg>)
+    case 'back': return (<svg {...p}><path d="M15 6l-6 6 6 6" /></svg>)
+    case 'edit': return (<svg {...p}><path d="M4 20h4L18 10l-4-4L4 16z" /><path d="M13.5 6.5l4 4" /></svg>)
+    case 'search': return (<svg {...p}><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" /></svg>)
+    case 'whatsapp': return (<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.885-9.885 9.885M20.52 3.449C18.24 1.245 15.24 0 12.045 0 5.463 0 .104 5.359.101 11.892c0 2.096.549 4.142 1.595 5.945L0 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.582 0 11.941-5.359 11.944-11.893a11.821 11.821 0 00-3.487-8.436z" /></svg>)
+    default: return null
+  }
 }
 
 function App() {
@@ -53,18 +116,17 @@ function App() {
   const [productoOtro, setProductoOtro] = useState('')
   const [precioOtro, setPrecioOtro] = useState('')
 
+  // --- Navegación entre secciones ---
+  const [vista, setVista] = useState('inicio') // inicio | clientes | productos | ajustes
+  const [clienteAbierto, setClienteAbierto] = useState(null) // id del cliente en detalle
+  const [filtroCli, setFiltroCli] = useState('todos') // todos | deuda | aldia
+  const [busquedaCli, setBusquedaCli] = useState('')
+
   // --- Estado para gestionar el catálogo de productos ---
-  const [mostrarProductos, setMostrarProductos] = useState(false)
-  const [mostrarClientes, setMostrarClientes] = useState(false)
   const [nuevoProdNombre, setNuevoProdNombre] = useState('')
   const [nuevoProdPrecio, setNuevoProdPrecio] = useState('')
 
-  // --- Auditoría de eliminados (solo dueña) ---
-  const [mostrarEliminados, setMostrarEliminados] = useState(false)
-
-  // --- Listado de clientes: búsqueda y detalles desplegados ---
-  const [busqueda, setBusqueda] = useState('')
-  const [detallesAbiertos, setDetallesAbiertos] = useState([]) // ids de clientes
+  // --- Listado de clientes ---
 
   // === 1. Al iniciar: revisar sesión y escuchar cambios ===
   useEffect(() => {
@@ -244,34 +306,41 @@ function App() {
   // Solo los que deben algo. Se deriva una vez y se reutiliza en todo el render.
   const clientesConDeuda = clientes.filter((c) => c.saldo > 0)
 
-  // Lo que realmente se pinta: los deudores que coinciden con la búsqueda.
-  const termino = sinAcentos(busqueda.trim())
-  const clientesFiltrados = termino === ''
-    ? clientesConDeuda
-    : clientesConDeuda.filter((c) => sinAcentos(c.nombre).includes(termino))
-
-  function alternarDetalle(idCliente) {
-    setDetallesAbiertos((abiertos) =>
-      abiertos.includes(idCliente)
-        ? abiertos.filter((id) => id !== idCliente)
-        : [...abiertos, idCliente]
-    )
-  }
+  // Vista "Clientes": todos los clientes, con filtro (todos/deuda/al día) y búsqueda.
+  const nAlDia = clientes.length - clientesConDeuda.length
+  const cliBusq = sinAcentos(busquedaCli.trim())
+  let clientesVista = clientes
+  if (filtroCli === 'deuda') clientesVista = clientes.filter((c) => c.saldo > 0)
+  else if (filtroCli === 'aldia') clientesVista = clientes.filter((c) => c.saldo <= 0)
+  if (cliBusq !== '') clientesVista = clientesVista.filter((c) => sinAcentos(c.nombre).includes(cliBusq))
+  clientesVista = [...clientesVista].sort((a, b) => a.nombre.localeCompare(b.nombre))
+  const clienteDetalle = clienteAbierto ? clientes.find((c) => c.id === clienteAbierto) : null
 
   // Abre WhatsApp con un recordatorio de cobro ya escrito. Si el cliente tiene
   // teléfono, abre el chat directo con él; si no, abre WhatsApp para que la
   // dueña elija el contacto.
   function cobrarPorWhatsapp(cliente) {
-    const texto =
-      `Hola ${cliente.nombre}, le recuerdo que tiene un saldo pendiente de ` +
-      `L ${cliente.saldo.toFixed(2)}` +
-      (nombreNegocio ? ` en ${nombreNegocio}` : '') +
-      `. ¡Gracias!`
+    const texto = mensajeCobro(cliente, nombreNegocio)
     const numero = normalizarTelHN(cliente.telefono)
     const url = numero
       ? `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`
       : `https://wa.me/?text=${encodeURIComponent(texto)}`
     window.open(url, '_blank')
+  }
+
+  // Guarda los cambios de nombre/teléfono de un cliente (desde su detalle).
+  async function guardarCliente(clienteId, nombre, telefono) {
+    const { error } = await actualizarCliente({
+      clienteId,
+      nombre: nombre.trim(),
+      telefono: telefono.trim() || null,
+    })
+    if (error) {
+      window.alert('No se pudo guardar: ' + error.message)
+      return false
+    }
+    await cargarClientes()
+    return true
   }
 
   function copiarCodigo() {
@@ -492,314 +561,280 @@ function App() {
   }
 
   return (
-    <div className="app">
-      <header className="topbar">
-        <div>
-          <div className="topbar-label">Tu negocio</div>
-          <div className="topbar-title">
-            {nombreNegocio || 'Control de Créditos'}
-            {rol === 'empleado' && <span className="topbar-role"> · empleado</span>}
-          </div>
+    <div className="shell">
+      {/* Menú lateral (PC) */}
+      <aside className="side">
+        <div className="side-brand">
+          <div className="side-mark"><Icono name="notebook" /></div>
+          <span className="side-name">Control de<br />Créditos</span>
         </div>
-        <button className="topbar-logout" onClick={cerrarSesion}>Salir</button>
-      </header>
-
-      {rol === 'duena' && codigoInvitacion && (
-        <div className="invite">
-          <span className="invite-label">
-            Código para empleados: <span className="invite-code">{codigoInvitacion}</span>
-          </span>
-          <button className="invite-copy" onClick={copiarCodigo}>Copiar</button>
+        <nav className="side-nav">
+          {NAV.map((it) => (
+            <button
+              key={it.id}
+              className={`nav-i ${vista === it.id ? 'on' : ''}`}
+              onClick={() => { setVista(it.id); setClienteAbierto(null) }}
+            >
+              <Icono name={it.icon} /> {it.label}
+            </button>
+          ))}
+        </nav>
+        <div className="side-foot">
+          {nombreNegocio && <div className="side-negocio">{nombreNegocio}</div>}
+          <button className="btn-quiet btn-muted" onClick={cerrarSesion}>Cerrar sesión</button>
         </div>
-      )}
+      </aside>
 
-      <div className="app-body">
-        {/* Hero: cuánto hay por cobrar */}
-        {clientesConDeuda.length > 0 ? (
-          <div className="hero hero-amber">
-            <div className="hero-label">Total por cobrar</div>
-            <div className="hero-amount">L {totalPendiente.toFixed(2)}</div>
-            <div className="hero-sub">
-              {clientesConDeuda.length} {clientesConDeuda.length === 1 ? 'cliente con saldo' : 'clientes con saldo'}
-            </div>
-          </div>
-        ) : (
-          <div className="hero hero-clear">
-            <span className="ico">✓</span>
-            <span className="hero-clear-text">Todo al día · nadie debe</span>
-          </div>
-        )}
+      {/* Contenido */}
+      <main className="main">
+        <div className="content">
 
-        {/* Registrar un fiado */}
-        <div className="card">
-          <div className="card-title">Registrar fiado</div>
-
-          <label className="field-label">Cliente</label>
-          <select className="select" value={clienteSel} onChange={(e) => setClienteSel(e.target.value)} style={{ marginBottom: '0.9rem' }}>
-            <option value="">Selecciona un cliente</option>
-            {clientes.map((c) => (
-              <option key={c.id} value={c.id}>{c.nombre}</option>
-            ))}
-            <option value="nuevo">+ Agregar cliente nuevo</option>
-          </select>
-
-          {clienteSel === 'nuevo' && (
+          {/* ---------- INICIO ---------- */}
+          {vista === 'inicio' && (
             <>
-              <input
-                className="input"
-                type="text"
-                placeholder="Nombre del cliente nuevo"
-                value={nombreNuevo}
-                onChange={(e) => setNombreNuevo(e.target.value)}
-                style={{ marginBottom: '0.6rem' }}
-              />
-              <input
-                className="input"
-                type="tel"
-                placeholder="Teléfono (opcional, para WhatsApp)"
-                value={telNuevo}
-                onChange={(e) => setTelNuevo(e.target.value)}
-                style={{ marginBottom: '0.9rem' }}
-              />
-            </>
-          )}
-
-          <label className="field-label">Agregar producto</label>
-          <div className="prod-row">
-            <select className="select" value={productoSel} onChange={(e) => setProductoSel(e.target.value)}>
-              <option value="">Selecciona un producto</option>
-              {productos.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre}{Number(p.precio) > 0 ? ` (L ${Number(p.precio).toFixed(2)})` : ''}
-                </option>
-              ))}
-              <option value="otro">Otro…</option>
-            </select>
-            <button className="btn" onClick={agregarAlCarrito}>Agregar</button>
-          </div>
-
-          {productoSel === 'otro' && (
-            <div className="prod-row">
-              <input
-                className="input"
-                type="text"
-                placeholder="Nombre del producto"
-                value={productoOtro}
-                onChange={(e) => setProductoOtro(e.target.value)}
-              />
-              <input
-                className="input precio"
-                type="number"
-                placeholder="Precio (L)"
-                value={precioOtro}
-                onChange={(e) => setPrecioOtro(e.target.value)}
-              />
-            </div>
-          )}
-
-          {carrito.length > 0 && (
-            <div className="cart">
-              <div className="cart-title">Productos de este fiado</div>
-              <ul className="cart-list">
-                {carrito.map((l, i) => (
-                  <li key={i} className="cart-line">
-                    <span className="name">{l.nombre} — L {l.precio.toFixed(2)}</span>
-                    <button className="qty" onClick={() => cambiarCantidad(i, -1)}>−</button>
-                    <span className="qty-n">{l.cantidad}</span>
-                    <button className="qty" onClick={() => cambiarCantidad(i, +1)}>+</button>
-                    <span className="cart-sub">L {(l.precio * l.cantidad).toFixed(2)}</span>
-                    <button className="icon-del" onClick={() => quitarDelCarrito(i)} title="Quitar">🗑</button>
-                  </li>
-                ))}
-              </ul>
-              <div className="cart-total">Total: L {totalCarrito.toFixed(2)}</div>
-            </div>
-          )}
-
-          <button className="btn btn-primary btn-block btn-lg" onClick={registrarFiado} style={{ marginTop: '1rem' }}>
-            Guardar fiado
-          </button>
-          {mensaje && <p className="msg msg-ok">{mensaje}</p>}
-        </div>
-
-        {/* Lista de clientes que deben */}
-        <div className="section-title">Clientes que deben</div>
-
-        {clientesConDeuda.length > 0 && (
-          <div className="search">
-            <span className="ico">🔍</span>
-            <input
-              className="input"
-              type="search"
-              placeholder="Buscar cliente por nombre…"
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-            />
-            {busqueda !== '' && (
-              <div className="search-meta">
-                {clientesFiltrados.length} de {clientesConDeuda.length} clientes
-                <button className="btn-quiet" onClick={() => setBusqueda('')} style={{ marginLeft: '0.5rem' }}>limpiar</button>
+              <div className="view-head">
+                <div className="view-eyebrow">Tu negocio</div>
+                <h1 className="view-title">
+                  {nombreNegocio || 'Control de Créditos'}
+                  {rol === 'empleado' && <span className="topbar-role"> · empleado</span>}
+                </h1>
               </div>
-            )}
-          </div>
-        )}
 
-        {clientesConDeuda.length === 0 && (
-          <p className="empty">Ningún cliente tiene saldo pendiente.</p>
-        )}
-        {clientesConDeuda.length > 0 && clientesFiltrados.length === 0 && (
-          <p className="empty">Ningún cliente con saldo coincide con «{busqueda}».</p>
-        )}
+              {clientesConDeuda.length > 0 ? (
+                <div className="hero hero-amber">
+                  <div className="hero-label">Total por cobrar</div>
+                  <div className="hero-amount">L {totalPendiente.toFixed(2)}</div>
+                  <div className="hero-sub">
+                    {clientesConDeuda.length} {clientesConDeuda.length === 1 ? 'cliente con saldo' : 'clientes con saldo'}
+                  </div>
+                </div>
+              ) : (
+                <div className="hero hero-clear">
+                  <span className="ico">✓</span>
+                  <span className="hero-clear-text">Todo al día · nadie debe</span>
+                </div>
+              )}
 
-        {clientesFiltrados.map((c) => (
-          <div key={c.id} className="client-row">
-            <div className="client-head">
-              <div className="avatar">{inicialesDe(c.nombre)}</div>
-              <div className="client-info">
-                <div className="client-name">{c.nombre}</div>
-                <div className="client-owes">debe <b>L {c.saldo.toFixed(2)}</b></div>
-              </div>
-              <div className="client-actions">
-                <button
-                  className="btn btn-sm"
-                  onClick={() => alternarDetalle(c.id)}
-                  title="Ver los movimientos de este cliente"
-                >
-                  {detallesAbiertos.includes(c.id) ? 'Ocultar' : `Detalle (${c.movimientos.length})`}
-                </button>
-                <button
-                  className="btn btn-sm btn-abonar"
-                  onClick={() => registrarAbono(c)}
-                  title="Registrar un pago de este cliente"
-                >
-                  Abonar
-                </button>
-                <button
-                  className="btn btn-sm btn-wa"
-                  onClick={() => cobrarPorWhatsapp(c)}
-                  title="Enviar recordatorio de cobro por WhatsApp"
-                  aria-label={`Cobrar a ${c.nombre} por WhatsApp`}
-                >
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.885-9.885 9.885M20.52 3.449C18.24 1.245 15.24 0 12.045 0 5.463 0 .104 5.359.101 11.892c0 2.096.549 4.142 1.595 5.945L0 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.582 0 11.941-5.359 11.944-11.893a11.821 11.821 0 00-3.487-8.436z"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-            {detallesAbiertos.includes(c.id) && (
-              <ul className="movs">
-                {c.movimientos.map((m) => (
-                  <li key={m.id} className="mov">
-                    {formatFecha(m.fecha)} — {m.tipo === 'fiado' ? 'Fiado' : 'Abono'}: L {Number(m.monto).toFixed(2)}
-                    {m.concepto ? ` (${m.concepto})` : ''}
-                    {m.perfiles?.nombre && <span className="mov-by"> · por {m.perfiles.nombre}</span>}
-                    <button className="icon-del" onClick={() => eliminarMovimiento(m.id)} title="Eliminar movimiento" style={{ marginLeft: '0.4rem' }}>🗑</button>
-                    {m.movimiento_detalle && m.movimiento_detalle.length > 0 && (
-                      <ul className="mov-detalle">
-                        {m.movimiento_detalle.map((d, i) => (
-                          <li key={i}>
-                            {d.cantidad}x {d.producto_nombre} — L {Number(d.precio_unitario).toFixed(2)} c/u
+              <div className="inicio-grid">
+                <div className="card">
+                  <div className="card-title">Registrar fiado</div>
+
+                  <label className="field-label">Cliente</label>
+                  <select className="select" value={clienteSel} onChange={(e) => setClienteSel(e.target.value)} style={{ marginBottom: '0.9rem' }}>
+                    <option value="">Selecciona un cliente</option>
+                    {clientes.map((c) => (
+                      <option key={c.id} value={c.id}>{c.nombre}</option>
+                    ))}
+                    <option value="nuevo">+ Agregar cliente nuevo</option>
+                  </select>
+
+                  {clienteSel === 'nuevo' && (
+                    <>
+                      <input className="input" type="text" placeholder="Nombre del cliente nuevo" value={nombreNuevo} onChange={(e) => setNombreNuevo(e.target.value)} style={{ marginBottom: '0.6rem' }} />
+                      <input className="input" type="tel" placeholder="Teléfono (opcional, para WhatsApp)" value={telNuevo} onChange={(e) => setTelNuevo(e.target.value)} style={{ marginBottom: '0.9rem' }} />
+                    </>
+                  )}
+
+                  <label className="field-label">Agregar producto</label>
+                  <div className="prod-row">
+                    <select className="select" value={productoSel} onChange={(e) => setProductoSel(e.target.value)}>
+                      <option value="">Selecciona un producto</option>
+                      {productos.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.nombre}{Number(p.precio) > 0 ? ` (L ${Number(p.precio).toFixed(2)})` : ''}
+                        </option>
+                      ))}
+                      <option value="otro">Otro…</option>
+                    </select>
+                    <button className="btn" onClick={agregarAlCarrito}>Agregar</button>
+                  </div>
+
+                  {productoSel === 'otro' && (
+                    <div className="prod-row">
+                      <input className="input" type="text" placeholder="Nombre del producto" value={productoOtro} onChange={(e) => setProductoOtro(e.target.value)} />
+                      <input className="input precio" type="number" placeholder="Precio (L)" value={precioOtro} onChange={(e) => setPrecioOtro(e.target.value)} />
+                    </div>
+                  )}
+
+                  {carrito.length > 0 && (
+                    <div className="cart">
+                      <div className="cart-title">Productos de este fiado</div>
+                      <ul className="cart-list">
+                        {carrito.map((l, i) => (
+                          <li key={i} className="cart-line">
+                            <span className="name">{l.nombre} — L {l.precio.toFixed(2)}</span>
+                            <button className="qty" onClick={() => cambiarCantidad(i, -1)}>−</button>
+                            <span className="qty-n">{l.cantidad}</span>
+                            <button className="qty" onClick={() => cambiarCantidad(i, +1)}>+</button>
+                            <span className="cart-sub">L {(l.precio * l.cantidad).toFixed(2)}</span>
+                            <button className="icon-del" onClick={() => quitarDelCarrito(i)} title="Quitar">🗑</button>
                           </li>
                         ))}
                       </ul>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ))}
+                      <div className="cart-total">Total: L {totalCarrito.toFixed(2)}</div>
+                    </div>
+                  )}
 
-        {/* Gestionar productos (colapsable) */}
-        <div className="collapse">
-          <button className="btn btn-block" onClick={() => setMostrarProductos(!mostrarProductos)}>
-            {mostrarProductos ? 'Ocultar productos' : '⚙ Gestionar productos'}
-          </button>
+                  <button className="btn btn-primary btn-block btn-lg" onClick={registrarFiado} style={{ marginTop: '1rem' }}>Guardar fiado</button>
+                  {mensaje && <p className="msg msg-ok">{mensaje}</p>}
+                </div>
 
-          {mostrarProductos && (
-            <div className="collapse-panel">
-              <h3>Mis productos</h3>
-              <div className="prod-row">
-                <input
-                  className="input"
-                  type="text"
-                  placeholder="Nombre del producto"
-                  value={nuevoProdNombre}
-                  onChange={(e) => setNuevoProdNombre(e.target.value)}
-                />
-                <input
-                  className="input precio"
-                  type="number"
-                  placeholder="Precio (L)"
-                  value={nuevoProdPrecio}
-                  onChange={(e) => setNuevoProdPrecio(e.target.value)}
-                />
-                <button className="btn btn-primary" onClick={agregarProducto}>Agregar</button>
+                <div>
+                  <div className="section-title" style={{ marginTop: 0 }}>Clientes que deben</div>
+
+                  {clientesConDeuda.length === 0 && (
+                    <p className="empty">Ningún cliente tiene saldo pendiente. 🎉</p>
+                  )}
+
+                  {clientesConDeuda.map((c) => (
+                    <div key={c.id} className="client-row">
+                      <div className="client-head">
+                        <div className="avatar">{inicialesDe(c.nombre)}</div>
+                        <div className="client-info">
+                          <div className="client-name">{c.nombre}</div>
+                          <div className="client-owes">debe <b>L {c.saldo.toFixed(2)}</b></div>
+                        </div>
+                        <div className="client-actions">
+                          <button className="btn btn-sm btn-abonar" onClick={() => registrarAbono(c)} title="Registrar un pago">Abonar</button>
+                          <button className="btn btn-sm btn-wa" onClick={() => cobrarPorWhatsapp(c)} title="Cobrar por WhatsApp" aria-label={`Cobrar a ${c.nombre} por WhatsApp`}>
+                            <Icono name="whatsapp" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-
-              {productos.length === 0 && (
-                <p className="help">Aún no tienes productos. Agrega los que vendes para que aparezcan al registrar un fiado.</p>
-              )}
-              <ul className="prod-list">
-                {productos.map((p) => (
-                  <li key={p.id}>
-                    <span>{p.nombre} — L {Number(p.precio).toFixed(2)}</span>
-                    <button className="icon-del" onClick={() => eliminarProducto(p.id)} title="Eliminar producto">🗑</button>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            </>
           )}
-        </div>
 
-        {/* Gestionar clientes: agregar teléfono a los que ya existen */}
-        <div className="collapse">
-          <button className="btn btn-block" onClick={() => setMostrarClientes(!mostrarClientes)}>
-            {mostrarClientes ? 'Ocultar clientes' : '👥 Gestionar clientes'}
-          </button>
+          {/* ---------- CLIENTES ---------- */}
+          {vista === 'clientes' && (
+            clienteDetalle ? (
+              <ClienteDetalle
+                cliente={clienteDetalle}
+                onVolver={() => setClienteAbierto(null)}
+                onWhatsapp={cobrarPorWhatsapp}
+                onAbonar={registrarAbono}
+                onGuardar={guardarCliente}
+                onEliminarMov={eliminarMovimiento}
+              />
+            ) : (
+              <>
+                <div className="view-head"><h1 className="view-title">Clientes</h1></div>
 
-          {mostrarClientes && (
-            <div className="collapse-panel">
-              <h3>Teléfonos de clientes</h3>
-              <p className="help" style={{ marginBottom: '0.9rem' }}>
-                Agrega el teléfono de cada cliente para poder cobrarle por WhatsApp con un toque.
-              </p>
-              <GestionClientes clientes={clientes} onGuardado={cargarClientes} />
-            </div>
-          )}
-        </div>
+                <div className="search">
+                  <span className="ico"><Icono name="search" /></span>
+                  <input className="input" type="search" placeholder="Buscar cliente…" value={busquedaCli} onChange={(e) => setBusquedaCli(e.target.value)} />
+                </div>
 
-        {/* Auditoría: movimientos eliminados (solo la dueña) */}
-        {rol === 'duena' && (
-          <div className="collapse">
-            <button className="btn btn-block" onClick={() => setMostrarEliminados(!mostrarEliminados)}>
-              {mostrarEliminados ? 'Ocultar eliminados' : `🗑 Movimientos eliminados (${eliminados.length})`}
-            </button>
+                <div className="chips">
+                  <button className={`chip ${filtroCli === 'todos' ? 'on' : ''}`} onClick={() => setFiltroCli('todos')}>Todos {clientes.length}</button>
+                  <button className={`chip ${filtroCli === 'deuda' ? 'on' : ''}`} onClick={() => setFiltroCli('deuda')}>Con deuda {clientesConDeuda.length}</button>
+                  <button className={`chip ${filtroCli === 'aldia' ? 'on' : ''}`} onClick={() => setFiltroCli('aldia')}>Al día {nAlDia}</button>
+                </div>
 
-            {mostrarEliminados && (
-              <div className="collapse-panel audit-panel">
-                <h3>Registro de eliminados</h3>
-                {eliminados.length === 0 && (
-                  <p className="help">No se ha eliminado ningún movimiento.</p>
+                {clientesVista.length === 0 && (
+                  <p className="empty">No hay clientes que coincidan.</p>
                 )}
-                <ul className="audit-list">
-                  {eliminados.map((m) => (
-                    <li key={m.id}>
-                      <strong>{m.nombreCliente}</strong> — {m.tipo === 'fiado' ? 'Fiado' : 'Abono'}: L {Number(m.monto).toFixed(2)}
-                      {m.concepto ? ` (${m.concepto})` : ''}
-                      <br />
-                      <span className="audit-when">
-                        Eliminado el {formatFecha(m.eliminado_en)}
-                        {m.eliminador?.nombre ? ` por ${m.eliminador.nombre}` : ''}
-                      </span>
+
+                {clientesVista.map((c) => (
+                  <button key={c.id} className="client-card" onClick={() => setClienteAbierto(c.id)}>
+                    <div className={`avatar ${c.saldo > 0 ? 'avatar-debe' : ''}`}>{inicialesDe(c.nombre)}</div>
+                    <div className="client-info">
+                      <div className="client-name">{c.nombre}</div>
+                      {c.saldo > 0
+                        ? <div className="client-owes">debe <b>L {c.saldo.toFixed(2)}</b></div>
+                        : <div className="client-aldia">al día</div>}
+                    </div>
+                    <span className="chev"><Icono name="chevron" /></span>
+                  </button>
+                ))}
+              </>
+            )
+          )}
+
+          {/* ---------- PRODUCTOS ---------- */}
+          {vista === 'productos' && (
+            <>
+              <div className="view-head"><h1 className="view-title">Productos</h1></div>
+              <div className="card">
+                <div className="prod-row">
+                  <input className="input" type="text" placeholder="Nombre del producto" value={nuevoProdNombre} onChange={(e) => setNuevoProdNombre(e.target.value)} />
+                  <input className="input precio" type="number" placeholder="Precio (L)" value={nuevoProdPrecio} onChange={(e) => setNuevoProdPrecio(e.target.value)} />
+                  <button className="btn btn-primary" onClick={agregarProducto}>Agregar</button>
+                </div>
+                {productos.length === 0 && (
+                  <p className="help">Aún no tienes productos. Agrega los que vendes para que aparezcan al registrar un fiado.</p>
+                )}
+                <ul className="prod-list">
+                  {productos.map((p) => (
+                    <li key={p.id}>
+                      <span>{p.nombre} — L {Number(p.precio).toFixed(2)}</span>
+                      <button className="icon-del" onClick={() => eliminarProducto(p.id)} title="Eliminar producto">🗑</button>
                     </li>
                   ))}
                 </ul>
               </div>
-            )}
-          </div>
-        )}
-      </div>
+            </>
+          )}
+
+          {/* ---------- AJUSTES ---------- */}
+          {vista === 'ajustes' && (
+            <>
+              <div className="view-head"><h1 className="view-title">Ajustes</h1></div>
+
+              {rol === 'duena' && codigoInvitacion && (
+                <div className="card">
+                  <div className="card-title">Invitar empleados</div>
+                  <p className="help" style={{ marginBottom: '0.7rem' }}>Comparte este código con tus empleados para que se unan a tu negocio.</p>
+                  <div className="invite-box">
+                    <span className="invite-code">{codigoInvitacion}</span>
+                    <button className="btn btn-sm btn-primary" onClick={copiarCodigo}>Copiar</button>
+                  </div>
+                </div>
+              )}
+
+              {rol === 'duena' && (
+                <div className="card">
+                  <div className="card-title">Movimientos eliminados</div>
+                  {eliminados.length === 0 && <p className="help">No se ha eliminado ningún movimiento.</p>}
+                  <ul className="audit-list">
+                    {eliminados.map((m) => (
+                      <li key={m.id}>
+                        <strong>{m.nombreCliente}</strong> — {m.tipo === 'fiado' ? 'Fiado' : 'Abono'}: L {Number(m.monto).toFixed(2)}
+                        {m.concepto ? ` (${m.concepto})` : ''}
+                        <br />
+                        <span className="audit-when">
+                          Eliminado el {formatFecha(m.eliminado_en)}
+                          {m.eliminador?.nombre ? ` por ${m.eliminador.nombre}` : ''}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <button className="btn btn-block btn-lg" onClick={cerrarSesion}>Cerrar sesión</button>
+            </>
+          )}
+
+        </div>
+      </main>
+
+      {/* Barra inferior (celular) */}
+      <nav className="bottomnav">
+        {NAV.map((it) => (
+          <button
+            key={it.id}
+            className={`bn ${vista === it.id ? 'on' : ''}`}
+            onClick={() => { setVista(it.id); setClienteAbierto(null) }}
+          >
+            <Icono name={it.icon} />
+            <span>{it.label}</span>
+          </button>
+        ))}
+      </nav>
     </div>
   )
 }
@@ -1173,60 +1208,97 @@ function Onboarding({ nombreSugerido, onListo }) {
 }
 
 // =======================================================================
-// Gestión de clientes: lista para agregar/editar el teléfono de cada uno.
+// Detalle de un cliente: info, acciones (WhatsApp/Abonar), historial y edición.
 // =======================================================================
-function GestionClientes({ clientes, onGuardado }) {
-  if (clientes.length === 0) {
-    return <p className="help">Aún no tienes clientes. Aparecerán aquí cuando registres su primer fiado.</p>
-  }
-  const ordenados = [...clientes].sort((a, b) => a.nombre.localeCompare(b.nombre))
-  return (
-    <ul className="cli-list">
-      {ordenados.map((c) => (
-        <FilaTelefono key={c.id} cliente={c} onGuardado={onGuardado} />
-      ))}
-    </ul>
-  )
-}
-
-function FilaTelefono({ cliente, onGuardado }) {
+function ClienteDetalle({ cliente, onVolver, onWhatsapp, onAbonar, onGuardar, onEliminarMov }) {
+  const [editando, setEditando] = useState(false)
+  const [nombre, setNombre] = useState(cliente.nombre)
   const [tel, setTel] = useState(cliente.telefono || '')
   const [guardando, setGuardando] = useState(false)
-  const [ok, setOk] = useState(false)
-
-  const cambiado = tel.trim() !== (cliente.telefono || '')
 
   async function guardar() {
-    setGuardando(true); setOk(false)
-    const { error } = await actualizarTelefonoCliente({
-      clienteId: cliente.id,
-      telefono: tel.trim() || null,
-    })
+    if (nombre.trim() === '') return
+    setGuardando(true)
+    const ok = await onGuardar(cliente.id, nombre, tel)
     setGuardando(false)
-    if (!error) {
-      setOk(true)
-      onGuardado()
-    }
+    if (ok) setEditando(false)
+  }
+
+  function cancelar() {
+    setNombre(cliente.nombre)
+    setTel(cliente.telefono || '')
+    setEditando(false)
   }
 
   return (
-    <li className="cli-row">
-      <span className="cli-name">{cliente.nombre}</span>
-      <input
-        className="input cli-tel"
-        type="tel"
-        placeholder="Teléfono"
-        value={tel}
-        onChange={(e) => { setTel(e.target.value); setOk(false) }}
-      />
-      <button
-        className="btn btn-sm btn-primary"
-        onClick={guardar}
-        disabled={guardando || !cambiado}
-      >
-        {guardando ? '…' : ok ? '✓ Guardado' : 'Guardar'}
+    <>
+      <button className="btn-quiet back-link" onClick={onVolver}>
+        <Icono name="back" /> Clientes
       </button>
-    </li>
+
+      <div className="detalle-head">
+        <div className={`avatar avatar-lg ${cliente.saldo > 0 ? 'avatar-debe' : ''}`}>{inicialesDe(cliente.nombre)}</div>
+        <div>
+          <div className="detalle-nombre">{cliente.nombre}</div>
+          {cliente.saldo > 0
+            ? <div className="client-owes">debe <b>L {cliente.saldo.toFixed(2)}</b></div>
+            : <div className="client-aldia">al día</div>}
+          <div className="detalle-tel">{cliente.telefono ? cliente.telefono : 'Sin teléfono'}</div>
+        </div>
+      </div>
+
+      {!editando && (
+        <div className="detalle-acciones">
+          <button className="btn btn-wa" onClick={() => onWhatsapp(cliente)}>
+            <Icono name="whatsapp" /> WhatsApp
+          </button>
+          {cliente.saldo > 0 && (
+            <button className="btn btn-abonar" onClick={() => onAbonar(cliente)}>Abonar</button>
+          )}
+          <button className="btn" onClick={() => setEditando(true)}>
+            <Icono name="edit" /> Editar cliente
+          </button>
+        </div>
+      )}
+
+      {editando && (
+        <div className="card">
+          <div className="card-title">Editar cliente</div>
+          <div className="field">
+            <label className="field-label">Nombre</label>
+            <input className="input" type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} />
+          </div>
+          <div className="field">
+            <label className="field-label">Teléfono (WhatsApp)</label>
+            <input className="input" type="tel" placeholder="Ej. 9999-9999" value={tel} onChange={(e) => setTel(e.target.value)} />
+          </div>
+          <div className="detalle-acciones">
+            <button className="btn btn-primary" onClick={guardar} disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar'}</button>
+            <button className="btn" onClick={cancelar} disabled={guardando}>Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      <div className="section-title">Movimientos</div>
+      {cliente.movimientos.length === 0 && <p className="empty">Sin movimientos.</p>}
+      <ul className="movs movs-standalone">
+        {cliente.movimientos.map((m) => (
+          <li key={m.id} className="mov">
+            {formatFechaCorta(m.fecha)} — {m.tipo === 'fiado' ? 'Fiado' : 'Abono'}: L {Number(m.monto).toFixed(2)}
+            {m.concepto ? ` (${m.concepto})` : ''}
+            {m.perfiles?.nombre && <span className="mov-by"> · por {m.perfiles.nombre}</span>}
+            <button className="icon-del" onClick={() => onEliminarMov(m.id)} title="Eliminar movimiento" style={{ marginLeft: '0.4rem' }}>🗑</button>
+            {m.movimiento_detalle && m.movimiento_detalle.length > 0 && (
+              <ul className="mov-detalle">
+                {m.movimiento_detalle.map((d, i) => (
+                  <li key={i}>{d.cantidad}x {d.producto_nombre} — L {Number(d.precio_unitario).toFixed(2)} c/u</li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ul>
+    </>
   )
 }
 
