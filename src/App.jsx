@@ -587,6 +587,13 @@ function App() {
 
       {/* Contenido */}
       <main className="main">
+        <header className="mobile-top">
+          <div className="mobile-brand">
+            <div className="mobile-mark"><Icono name="notebook" /></div>
+            <span>Control de Créditos</span>
+          </div>
+          <button className="mobile-logout" onClick={cerrarSesion}>Cerrar sesión</button>
+        </header>
         <div className="content">
 
           {/* ---------- INICIO ---------- */}
