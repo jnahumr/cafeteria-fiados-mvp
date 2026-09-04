@@ -3,9 +3,19 @@ import { supabase } from './supabaseClient'
 import { calcularSaldoCliente, buscarClienteExistente } from './lib/creditos'
 import { sinAcentos } from './lib/texto'
 import { formatFecha } from './lib/fecha'
-import { obtenerProductos, crearProducto, eliminarProductoPorId, obtenerClientes, obtenerMovimientos, crearCliente, crearMovimientoFiado, crearDetalleMovimiento, crearAbono, marcarMovimientoEliminado, crearNegocioOnboarding, unirseNegocioOnboarding } from './lib/api'
+import { obtenerProductos, crearProducto, eliminarProductoPorId, obtenerClientes, obtenerMovimientos, crearCliente, actualizarTelefonoCliente, crearMovimientoFiado, crearDetalleMovimiento, crearAbono, marcarMovimientoEliminado, crearNegocioOnboarding, unirseNegocioOnboarding } from './lib/api'
 
 
+
+// Normaliza un teléfono para el enlace de WhatsApp (formato internacional
+// sin símbolos). Honduras: si vienen 8 dígitos, se antepone el código 504.
+function normalizarTelHN(tel) {
+  const digitos = (tel || '').replace(/\D/g, '')
+  if (digitos === '') return ''
+  if (digitos.startsWith('504')) return digitos
+  if (digitos.length === 8) return '504' + digitos
+  return digitos
+}
 
 // Iniciales para el avatar de cada cliente (1 o 2 letras).
 function inicialesDe(nombre) {
@@ -34,6 +44,7 @@ function App() {
   const [eliminados, setEliminados] = useState([]) // movimientos borrados (auditoría)
   const [clienteSel, setClienteSel] = useState('')
   const [nombreNuevo, setNombreNuevo] = useState('')
+  const [telNuevo, setTelNuevo] = useState('')
   const [mensaje, setMensaje] = useState('')
 
   // --- Estado del carrito ---
@@ -44,6 +55,7 @@ function App() {
 
   // --- Estado para gestionar el catálogo de productos ---
   const [mostrarProductos, setMostrarProductos] = useState(false)
+  const [mostrarClientes, setMostrarClientes] = useState(false)
   const [nuevoProdNombre, setNuevoProdNombre] = useState('')
   const [nuevoProdPrecio, setNuevoProdPrecio] = useState('')
 
@@ -246,6 +258,22 @@ function App() {
     )
   }
 
+  // Abre WhatsApp con un recordatorio de cobro ya escrito. Si el cliente tiene
+  // teléfono, abre el chat directo con él; si no, abre WhatsApp para que la
+  // dueña elija el contacto.
+  function cobrarPorWhatsapp(cliente) {
+    const texto =
+      `Hola ${cliente.nombre}, le recuerdo que tiene un saldo pendiente de ` +
+      `L ${cliente.saldo.toFixed(2)}` +
+      (nombreNegocio ? ` en ${nombreNegocio}` : '') +
+      `. ¡Gracias!`
+    const numero = normalizarTelHN(cliente.telefono)
+    const url = numero
+      ? `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`
+      : `https://wa.me/?text=${encodeURIComponent(texto)}`
+    window.open(url, '_blank')
+  }
+
   function copiarCodigo() {
     navigator.clipboard.writeText(codigoInvitacion)
     setMensaje('Código copiado: ' + codigoInvitacion)
@@ -316,6 +344,7 @@ function App() {
       } else {
         const { data: nuevo, error: errNuevo } = await crearCliente({
           nombre: nombreLimpio,
+          telefono: telNuevo.trim() || null,
           negocioId,
         })
 
@@ -370,6 +399,7 @@ function App() {
     setMensaje('Fiado registrado correctamente.')
     setCarrito([])
     setNombreNuevo('')
+    setTelNuevo('')
     setClienteSel('')
     setProductoSel('')
     setProductoOtro('')
@@ -514,14 +544,24 @@ function App() {
           </select>
 
           {clienteSel === 'nuevo' && (
-            <input
-              className="input"
-              type="text"
-              placeholder="Nombre del cliente nuevo"
-              value={nombreNuevo}
-              onChange={(e) => setNombreNuevo(e.target.value)}
-              style={{ marginBottom: '0.9rem' }}
-            />
+            <>
+              <input
+                className="input"
+                type="text"
+                placeholder="Nombre del cliente nuevo"
+                value={nombreNuevo}
+                onChange={(e) => setNombreNuevo(e.target.value)}
+                style={{ marginBottom: '0.6rem' }}
+              />
+              <input
+                className="input"
+                type="tel"
+                placeholder="Teléfono (opcional, para WhatsApp)"
+                value={telNuevo}
+                onChange={(e) => setTelNuevo(e.target.value)}
+                style={{ marginBottom: '0.9rem' }}
+              />
+            </>
           )}
 
           <label className="field-label">Agregar producto</label>
@@ -634,6 +674,16 @@ function App() {
                 >
                   Abonar
                 </button>
+                <button
+                  className="btn btn-sm btn-wa"
+                  onClick={() => cobrarPorWhatsapp(c)}
+                  title="Enviar recordatorio de cobro por WhatsApp"
+                  aria-label={`Cobrar a ${c.nombre} por WhatsApp`}
+                >
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.885-9.885 9.885M20.52 3.449C18.24 1.245 15.24 0 12.045 0 5.463 0 .104 5.359.101 11.892c0 2.096.549 4.142 1.595 5.945L0 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.582 0 11.941-5.359 11.944-11.893a11.821 11.821 0 00-3.487-8.436z"/>
+                  </svg>
+                </button>
               </div>
             </div>
             {detallesAbiertos.includes(c.id) && (
@@ -698,6 +748,23 @@ function App() {
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+        </div>
+
+        {/* Gestionar clientes: agregar teléfono a los que ya existen */}
+        <div className="collapse">
+          <button className="btn btn-block" onClick={() => setMostrarClientes(!mostrarClientes)}>
+            {mostrarClientes ? 'Ocultar clientes' : '👥 Gestionar clientes'}
+          </button>
+
+          {mostrarClientes && (
+            <div className="collapse-panel">
+              <h3>Teléfonos de clientes</h3>
+              <p className="help" style={{ marginBottom: '0.9rem' }}>
+                Agrega el teléfono de cada cliente para poder cobrarle por WhatsApp con un toque.
+              </p>
+              <GestionClientes clientes={clientes} onGuardado={cargarClientes} />
             </div>
           )}
         </div>
@@ -1102,6 +1169,64 @@ function Onboarding({ nombreSugerido, onListo }) {
         </div>
       </div>
     </div>
+  )
+}
+
+// =======================================================================
+// Gestión de clientes: lista para agregar/editar el teléfono de cada uno.
+// =======================================================================
+function GestionClientes({ clientes, onGuardado }) {
+  if (clientes.length === 0) {
+    return <p className="help">Aún no tienes clientes. Aparecerán aquí cuando registres su primer fiado.</p>
+  }
+  const ordenados = [...clientes].sort((a, b) => a.nombre.localeCompare(b.nombre))
+  return (
+    <ul className="cli-list">
+      {ordenados.map((c) => (
+        <FilaTelefono key={c.id} cliente={c} onGuardado={onGuardado} />
+      ))}
+    </ul>
+  )
+}
+
+function FilaTelefono({ cliente, onGuardado }) {
+  const [tel, setTel] = useState(cliente.telefono || '')
+  const [guardando, setGuardando] = useState(false)
+  const [ok, setOk] = useState(false)
+
+  const cambiado = tel.trim() !== (cliente.telefono || '')
+
+  async function guardar() {
+    setGuardando(true); setOk(false)
+    const { error } = await actualizarTelefonoCliente({
+      clienteId: cliente.id,
+      telefono: tel.trim() || null,
+    })
+    setGuardando(false)
+    if (!error) {
+      setOk(true)
+      onGuardado()
+    }
+  }
+
+  return (
+    <li className="cli-row">
+      <span className="cli-name">{cliente.nombre}</span>
+      <input
+        className="input cli-tel"
+        type="tel"
+        placeholder="Teléfono"
+        value={tel}
+        onChange={(e) => { setTel(e.target.value); setOk(false) }}
+      />
+      <button
+        className="btn btn-sm btn-primary"
+        onClick={guardar}
+        disabled={guardando || !cambiado}
+      >
+        {guardando ? '…' : ok ? '✓ Guardado' : 'Guardar'}
+      </button>
+    </li>
   )
 }
 

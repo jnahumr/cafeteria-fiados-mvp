@@ -308,3 +308,20 @@ h1, h2, h3 { margin: 0; letter-spacing: -0.01em; color: var(--ink); }
 .audit-list li { padding: 0.55rem 0; border-top: 1px solid #F0D2CE; color: var(--ink-soft); }
 .audit-list li:first-child { border-top: none; }
 .audit-when { color: var(--danger); }
+
+/* Botón de WhatsApp (cobro) */
+.btn-wa {
+  background: #25D366; border-color: #25D366; color: #fff;
+  padding: 0 11px;
+}
+.btn-wa:hover { background: #1EBE5A; border-color: #1EBE5A; }
+
+/* Gestión de teléfonos de clientes */
+.cli-list { list-style: none; margin: 0; padding: 0; }
+.cli-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 0.6rem 0; border-top: 1px solid var(--border);
+}
+.cli-row:first-child { border-top: none; }
+.cli-name { flex: 1 1 110px; font-weight: 500; min-width: 0; }
+.cli-tel { flex: 2 1 140px; height: 42px; }
