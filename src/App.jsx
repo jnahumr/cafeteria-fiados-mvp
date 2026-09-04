@@ -40,6 +40,7 @@ function mensajeCobro(cliente, nombreNegocio) {
     `tiene un saldo pendiente con nosotros. El detalle es el siguiente:\n` +
     detalle +
     `\n*Total pendiente: L ${cliente.saldo.toFixed(2)}*\n\n` +
+    `Por favor ponerse al día con su pago.\n` +
     `Gracias por su preferencia.`
   )
 }
