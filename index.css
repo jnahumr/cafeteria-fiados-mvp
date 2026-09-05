@@ -427,39 +427,3 @@ h1, h2, h3 { margin: 0; letter-spacing: -0.01em; color: var(--ink); }
 
 .movs-standalone { border-top: none; padding-top: 0; }
 .search .ico svg { width: 20px; height: 20px; }
-
-/* Barra superior solo en celular (con cerrar sesión visible) */
-.mobile-top {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0.65rem 1rem;
-  background: var(--surface); border-bottom: 1px solid var(--border);
-  position: sticky; top: 0; z-index: 10;
-}
-.mobile-brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.95rem; color: var(--ink); }
-.mobile-mark { width: 30px; height: 30px; border-radius: 8px; background: var(--green); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.mobile-mark svg { width: 17px; height: 17px; }
-.mobile-logout {
-  background: var(--green-tint); color: var(--green-dark); border: none;
-  font-family: inherit; font-size: 0.85rem; font-weight: 600;
-  padding: 8px 13px; border-radius: 10px; cursor: pointer; white-space: nowrap;
-}
-@media (min-width: 860px) { .mobile-top { display: none; } }
-
-/* Modal (abono) */
-.modal-overlay {
-  position: fixed; inset: 0; z-index: 50;
-  background: rgba(28,26,23,.45);
-  display: flex; align-items: center; justify-content: center;
-  padding: 1rem;
-}
-.modal {
-  background: var(--surface); border-radius: 18px; padding: 1.4rem;
-  width: 100%; max-width: 380px;
-  box-shadow: 0 20px 55px rgba(0,0,0,.28);
-}
-.modal-title { font-size: 1.2rem; font-weight: 800; }
-.modal-sub { color: var(--ink-soft); margin: 4px 0 16px; }
-.modal-sub b { color: var(--amber); }
-.modal-quick { margin-top: 10px; }
-.modal-actions { display: flex; gap: 10px; margin-top: 18px; }
-.modal-actions .btn { flex: 1; }

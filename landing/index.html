@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Control de Créditos — el control de fiados de tu negocio</title>
+<meta name="description" content="Lleva el control de los fiados de tu pulpería o cafetería desde el celular. Mira cuánto te deben y cobra por WhatsApp con un toque." />
+<meta name="theme-color" content="#15734B" />
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<meta property="og:title" content="Control de Créditos" />
+<meta property="og:description" content="El control de fiados de tu negocio, en el celular. Cobra por WhatsApp con un toque." />
+<meta property="og:type" content="website" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#FBF9F5; --surface:#fff; --ink:#1C1A17; --ink-soft:#6B655C; --ink-faint:#A79F92;
+    --green:#15734B; --green-strong:#115E3D; --green-dark:#0C4A30; --green-tint:#E6F0EA;
+    --amber:#B45309; --amber-dark:#8A5410; --amber-tint:#FDF0DC;
+    --border:#ECE7DE; --wa:#25D366;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased; line-height:1.5;
+    font-variant-numeric:tabular-nums;
+  }
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 1.2rem}
+
+  /* Botones */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    font-weight:700;font-size:1rem;border-radius:12px;padding:14px 22px;cursor:pointer;border:1px solid transparent}
+  .btn-primary{background:var(--green);color:#fff}
+  .btn-primary:hover{background:var(--green-strong)}
+  .btn-ghost{background:var(--surface);color:var(--ink);border-color:#DDD6C9}
+  .btn-ghost:hover{background:#FAF8F4}
+  .btn-sm{padding:9px 16px;font-size:.9rem;font-weight:600;border-radius:10px}
+
+  /* Nav */
+  .nav{position:sticky;top:0;z-index:20;background:rgba(251,249,245,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+  .nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.05rem}
+  .brand-mark{width:34px;height:34px;border-radius:9px;background:var(--green);display:flex;align-items:center;justify-content:center}
+
+  /* Hero */
+  .hero .wrap{display:grid;grid-template-columns:1fr;gap:32px;padding-top:52px;padding-bottom:52px;align-items:center}
+  .eyebrow{display:inline-block;font-size:.82rem;font-weight:700;color:var(--amber-dark);
+    background:var(--amber-tint);padding:6px 13px;border-radius:999px;margin-bottom:18px}
+  h1{font-size:2.5rem;line-height:1.08;letter-spacing:-.03em;margin:0 0 16px;font-weight:800}
+  .hero p.lead{font-size:1.15rem;color:var(--ink-soft);margin:0 0 26px;max-width:36ch}
+  .hero-cta{display:flex;gap:12px;flex-wrap:wrap}
+  .hero-note{margin-top:14px;font-size:.85rem;color:var(--ink-faint)}
+
+  /* Phone */
+  .phone{width:270px;margin:0 auto;border-radius:34px;background:var(--ink);padding:9px;box-shadow:0 24px 60px rgba(28,26,23,.22)}
+  .phone-screen{border-radius:26px;background:var(--bg);overflow:hidden}
+  .p-top{background:var(--green);padding:16px 16px 18px}
+  .p-eyebrow{font-size:11px;color:#A7D6BD;font-weight:500}
+  .p-negocio{font-size:16px;font-weight:800;color:#fff}
+  .p-body{padding:14px}
+  .p-hero{background:var(--amber-tint);border-radius:14px;padding:13px 15px}
+  .p-hero-l{font-size:11px;font-weight:700;color:var(--amber-dark)}
+  .p-hero-n{font-size:27px;font-weight:800;color:var(--amber);line-height:1.1}
+  .p-hero-s{font-size:11px;color:#A9762E}
+  .p-row{background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 11px;display:flex;align-items:center;gap:10px;margin-top:11px}
+  .p-av{width:34px;height:34px;border-radius:50%;background:var(--amber-tint);color:var(--amber);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px}
+  .p-name{font-size:13px;font-weight:600}
+  .p-owe{font-size:11px;color:var(--amber);font-weight:600}
+  .p-wa{width:30px;height:30px;border-radius:8px;background:var(--wa);display:flex;align-items:center;justify-content:center}
+
+  /* Secciones */
+  section{padding:8px 0}
+  .section-tag{font-size:.85rem;font-weight:700;color:var(--green);margin:0 0 8px}
+  h2{font-size:2rem;line-height:1.12;letter-spacing:-.02em;margin:0 0 12px;font-weight:800}
+  .section-intro{color:var(--ink-soft);font-size:1.05rem;max-width:52ch;margin:0 0 34px}
+
+  /* Beneficios */
+  .benefits{padding:44px 0}
+  .grid{display:grid;grid-template-columns:1fr;gap:16px}
+  .benefit{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:22px}
+  .benefit .ic{width:44px;height:44px;border-radius:12px;background:var(--green-tint);color:var(--green);display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+  .benefit.wa .ic{color:var(--wa)}
+  .benefit h3{margin:0 0 6px;font-size:1.12rem;font-weight:700}
+  .benefit p{margin:0;color:var(--ink-soft);font-size:.96rem}
+
+  /* Cómo funciona */
+  .steps{background:var(--green-dark);color:#fff;border-radius:26px;padding:44px 28px;margin:20px 0}
+  .steps h2{color:#fff}
+  .steps .section-tag{color:#8FD3B4}
+  .steps-intro{color:#B9DECB;font-size:1.05rem;max-width:48ch;margin:0 0 30px}
+  .step-list{display:grid;grid-template-columns:1fr;gap:18px}
+  .step{display:flex;gap:16px;align-items:flex-start}
+  .step-n{flex:0 0 auto;width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.13);
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.1rem;color:#fff}
+  .step h3{margin:2px 0 4px;font-size:1.15rem;font-weight:700}
+  .step p{margin:0;color:#B9DECB;font-size:.98rem}
+
+  /* Showcase WhatsApp */
+  .showcase{padding:48px 0}
+  .showcase .wrap{display:grid;grid-template-columns:1fr;gap:34px;align-items:center}
+  .chat{background:#E5DDD3;border-radius:20px;padding:22px 18px;max-width:360px;margin:0 auto;width:100%}
+  .bubble{background:#fff;border-radius:12px;border-top-left-radius:4px;padding:12px 14px;font-size:.9rem;
+    box-shadow:0 1px 2px rgba(0,0,0,.08);white-space:pre-line;color:#111}
+  .bubble b{color:var(--amber)}
+  .bubble .time{display:block;text-align:right;font-size:.72rem;color:#9aa0a6;margin-top:6px}
+
+  /* CTA final */
+  .cta-final{padding:56px 0}
+  .cta-card{background:var(--surface);border:1px solid var(--border);border-radius:26px;padding:44px 28px;text-align:center}
+  .cta-card h2{margin:0 0 10px}
+  .cta-card p{color:var(--ink-soft);font-size:1.08rem;margin:0 0 26px}
+
+  /* Footer */
+  footer{border-top:1px solid var(--border);padding:30px 0 40px;color:var(--ink-soft);font-size:.9rem}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center}
+  .foot-brand{display:flex;align-items:center;gap:9px;font-weight:800;color:var(--ink)}
+
+  /* Responsive */
+  @media(min-width:820px){
+    .hero .wrap{grid-template-columns:1.05fr .95fr;padding-top:72px;padding-bottom:64px}
+    h1{font-size:3.2rem}
+    .grid{grid-template-columns:repeat(3,1fr)}
+    .step-list{grid-template-columns:1fr}
+    .steps{padding:52px}
+    .step-list{grid-template-columns:repeat(3,1fr)}
+    .showcase .wrap{grid-template-columns:1fr 1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<header class="nav">
+  <div class="wrap">
+    <div class="brand">
+      <span class="brand-mark">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="6" y="3" width="14" height="18" rx="2" stroke="#fff" stroke-width="2"/><path d="M6 8H3M6 12H3M6 16H3" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+      </span>
+      Control de Créditos
+    </div>
+    <a class="btn btn-ghost btn-sm" href="https://cafeteria-fiados-mvp.vercel.app">Entrar</a>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <span class="eyebrow">Para pulperías y cafeterías 🇭🇳</span>
+      <h1>Dejá la libreta. Controlá los fiados desde tu celular.</h1>
+      <p class="lead">Mirá cuánto te deben, registrá fiados en segundos y mandá el recordatorio de cobro por WhatsApp. Sin cuentas perdidas.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="https://cafeteria-fiados-mvp.vercel.app">Crear cuenta gratis</a>
+        <a class="btn btn-ghost" href="#como-funciona">Ver cómo funciona</a>
+      </div>
+      <p class="hero-note">Gratis · Entrá con Google o tu correo · Funciona en el celular</p>
+    </div>
+
+    <div class="phone-col">
+      <div class="phone">
+        <div class="phone-screen">
+          <div class="p-top">
+            <div class="p-eyebrow">Tu negocio</div>
+            <div class="p-negocio">Cafetería La Esquina</div>
+          </div>
+          <div class="p-body">
+            <div class="p-hero">
+              <div class="p-hero-l">Total por cobrar</div>
+              <div class="p-hero-n">L 90.00</div>
+              <div class="p-hero-s">2 clientes con saldo</div>
+            </div>
+            <div class="p-row">
+              <div class="p-av">CM</div>
+              <div style="flex:1"><div class="p-name">Carlos Mendoza</div><div class="p-owe">debe L 75.00</div></div>
+              <div class="p-wa"><svg width="17" height="17" viewBox="0 0 24 24" fill="#fff"><path d="M17.5 14.4c-.3-.1-1.8-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.3-.5-2.4-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6l.4-.5c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5 0-.1-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5H7.4c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.8-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.1-.3-.2-.6-.3M12 21.8h0a9.9 9.9 0 01-5-1.4l-.4-.2-3.7 1 1-3.6-.2-.4a9.9 9.9 0 01-1.5-5.3C2.1 6.9 6.5 2.5 12 2.5c2.6 0 5.1 1 7 2.9a9.8 9.8 0 012.9 7c0 5.4-4.4 9.9-9.9 9.9M20.5 3.4A11.8 11.8 0 0012 0C5.5 0 .1 5.4.1 11.9c0 2.1.5 4.1 1.6 5.9L0 24l6.3-1.7a11.9 11.9 0 005.7 1.5h0c6.6 0 11.9-5.4 11.9-11.9 0-3.2-1.2-6.2-3.4-8.4z"/></svg></div>
+            </div>
+            <div class="p-row" style="opacity:.55">
+              <div class="p-av" style="background:var(--green-tint);color:var(--green)">AR</div>
+              <div style="flex:1"><div class="p-name">Ana Rivera</div><div class="p-owe">debe L 15.00</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BENEFICIOS -->
+<section class="benefits">
+  <div class="wrap">
+    <p class="section-tag">Lo que hace por vos</p>
+    <h2>Tu negocio, bajo control</h2>
+    <p class="section-intro">Todo lo que anotabas en la libreta, ahora ordenado, sumado y siempre a mano.</p>
+
+    <div class="grid">
+      <div class="benefit">
+        <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></div>
+        <h3>Cuánto te deben, al instante</h3>
+        <p>Al abrir la app ves el total por cobrar y quién te debe. Sin sumar a mano.</p>
+      </div>
+      <div class="benefit">
+        <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></div>
+        <h3>Registrá en segundos</h3>
+        <p>Anotá un fiado con sus productos en dos toques, desde el mostrador.</p>
+      </div>
+      <div class="benefit wa">
+        <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.8-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.3-.5-2.4-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6l.4-.5c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5 0-.1-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5H7.4c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.8-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.1-.3-.2-.6-.3M12 21.8a9.9 9.9 0 01-5-1.4l-.4-.2-3.7 1 1-3.6-.2-.4a9.9 9.9 0 01-1.5-5.3C2.1 6.9 6.5 2.5 12 2.5c2.6 0 5.1 1 7 2.9a9.8 9.8 0 012.9 7c0 5.4-4.4 9.9-9.9 9.9M20.5 3.4A11.8 11.8 0 0012 0C5.5 0 .1 5.4.1 11.9c0 2.1.5 4.1 1.6 5.9L0 24l6.3-1.7a11.9 11.9 0 005.7 1.5c6.6 0 11.9-5.4 11.9-11.9 0-3.2-1.2-6.2-3.4-8.4z"/></svg></div>
+        <h3>Cobrá por WhatsApp</h3>
+        <p>El recordatorio con el detalle de lo que debe, ya escrito. Un solo toque.</p>
+      </div>
+      <div class="benefit">
+        <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.6a3 3 0 0 1 0 5.6"/><path d="M17.5 20a5.5 5.5 0 0 0-3-4.9"/></svg></div>
+        <h3>Sumá a tus empleados</h3>
+        <p>Comparte un código y ellos también registran. Vos ves quién hizo cada cosa.</p>
+      </div>
+      <div class="benefit">
+        <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18h2"/></svg></div>
+        <h3>Desde tu celular</h3>
+        <p>Funciona en el teléfono, en la compu, donde estés. Tus datos guardados en la nube.</p>
+      </div>
+      <div class="benefit">
+        <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
+        <h3>Nada se pierde</h3>
+        <p>Se acabaron las libretas mojadas, extraviadas o con la letra que ya no se entiende.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CÓMO FUNCIONA -->
+<section id="como-funciona">
+  <div class="wrap">
+    <div class="steps">
+      <p class="section-tag">Empezar es fácil</p>
+      <h2>De la libreta a la app en 3 pasos</h2>
+      <p class="steps-intro">No necesitás saber de tecnología. Si sabés usar WhatsApp, sabés usar esto.</p>
+      <div class="step-list">
+        <div class="step">
+          <div class="step-n">1</div>
+          <div>
+            <h3>Creá tu negocio</h3>
+            <p>Registrate con Google o tu correo en un minuto y ponele el nombre a tu negocio.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-n">2</div>
+          <div>
+            <h3>Registrá fiados y clientes</h3>
+            <p>Agregá tus productos y anotá lo que cada quien va fiando. La app lleva la cuenta.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-n">3</div>
+          <div>
+            <h3>Cobrá por WhatsApp</h3>
+            <p>Cuando quieras, mandá el recordatorio con el detalle. El cliente sabe justo lo que debe.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SHOWCASE WHATSAPP -->
+<section class="showcase">
+  <div class="wrap">
+    <div>
+      <p class="section-tag">El cobro más fácil</p>
+      <h2>Un toque, y el recordatorio sale solo</h2>
+      <p class="section-intro">La app arma el mensaje con el detalle de lo consumido y el total. Vos solo elegís a quién y le das enviar. Cordial, claro y sin momentos incómodos.</p>
+      <a class="btn btn-primary" href="https://cafeteria-fiados-mvp.vercel.app">Probarlo gratis</a>
+    </div>
+    <div class="chat">
+      <div class="bubble">Buen día Carlos Mendoza, le saludamos de Cafetería La Esquina, para recordarle que tiene un saldo pendiente con nosotros. El detalle es el siguiente:
+
+03/09/2026 — 1x Coca Cola 500 ml: L 30.00
+04/09/2026 — 1x Pollo con tajadas: L 90.00
+
+<b>Total pendiente: L 105.00</b>
+
+Por favor ponerse al día con su pago.
+Gracias por su preferencia.<span class="time">8:26 a. m. ✓✓</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<section class="cta-final">
+  <div class="wrap">
+    <div class="cta-card">
+      <h2>Empezá hoy. Es gratis.</h2>
+      <p>Llevá las cuentas de tu negocio como se debe, desde el primer fiado.</p>
+      <a class="btn btn-primary" href="https://cafeteria-fiados-mvp.vercel.app">Crear mi cuenta gratis</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="foot-brand">
+      <span class="brand-mark" style="width:28px;height:28px;border-radius:8px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="6" y="3" width="14" height="18" rx="2" stroke="#fff" stroke-width="2"/><path d="M6 8H3M6 12H3M6 16H3" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+      </span>
+      Control de Créditos
+    </div>
+    <div>Hecho en Honduras 🇭🇳 · San Pedro Sula</div>
+    <div>© 2026 Control de Créditos</div>
+  </div>
+</footer>
+
+</body>
+</html>
