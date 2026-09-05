@@ -136,6 +136,7 @@ function App() {
   const [clienteAbierto, setClienteAbierto] = useState(null) // id del cliente en detalle
   const [filtroCli, setFiltroCli] = useState('todos') // todos | deuda | aldia
   const [busquedaCli, setBusquedaCli] = useState('')
+  const [busquedaInicio, setBusquedaInicio] = useState('') // buscador de "Clientes que deben" en Inicio
 
   // --- Estado para gestionar el catálogo de productos ---
   const [nuevoProdNombre, setNuevoProdNombre] = useState('')
@@ -330,6 +331,12 @@ function App() {
   if (cliBusq !== '') clientesVista = clientesVista.filter((c) => sinAcentos(c.nombre).includes(cliBusq))
   clientesVista = [...clientesVista].sort((a, b) => a.nombre.localeCompare(b.nombre))
   const clienteDetalle = clienteAbierto ? clientes.find((c) => c.id === clienteAbierto) : null
+
+  // Vista "Inicio": deudores filtrados por el buscador de esa pantalla.
+  const termInicio = sinAcentos(busquedaInicio.trim())
+  const deudoresFiltrados = termInicio === ''
+    ? clientesConDeuda
+    : clientesConDeuda.filter((c) => sinAcentos(c.nombre).includes(termInicio))
 
   // Abre WhatsApp con un recordatorio de cobro ya escrito. Si el cliente tiene
   // teléfono, abre el chat directo con él; si no, abre WhatsApp para que la
@@ -708,7 +715,24 @@ function App() {
                     <p className="empty">Ningún cliente tiene saldo pendiente. 🎉</p>
                   )}
 
-                  {clientesConDeuda.map((c) => (
+                  {clientesConDeuda.length > 0 && (
+                    <div className="search">
+                      <span className="ico"><Icono name="search" /></span>
+                      <input
+                        className="input"
+                        type="search"
+                        placeholder="Buscar cliente por nombre…"
+                        value={busquedaInicio}
+                        onChange={(e) => setBusquedaInicio(e.target.value)}
+                      />
+                    </div>
+                  )}
+
+                  {clientesConDeuda.length > 0 && deudoresFiltrados.length === 0 && (
+                    <p className="empty">Ningún cliente con saldo coincide con «{busquedaInicio}».</p>
+                  )}
+
+                  {deudoresFiltrados.map((c) => (
                     <div key={c.id} className="client-row">
                       <div className="client-head">
                         <div className="avatar">{inicialesDe(c.nombre)}</div>
