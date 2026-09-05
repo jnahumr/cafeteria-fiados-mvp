@@ -137,6 +137,7 @@ function App() {
   const [filtroCli, setFiltroCli] = useState('todos') // todos | deuda | aldia
   const [busquedaCli, setBusquedaCli] = useState('')
   const [busquedaInicio, setBusquedaInicio] = useState('') // buscador de "Clientes que deben" en Inicio
+  const [abonoCliente, setAbonoCliente] = useState(null) // cliente al que se le registra un abono (modal)
 
   // --- Estado para gestionar el catálogo de productos ---
   const [nuevoProdNombre, setNuevoProdNombre] = useState('')
@@ -498,19 +499,14 @@ function App() {
     cargarClientes()
   }
 
-  async function registrarAbono(cliente) {
+  // Abre el modal para registrar el abono de este cliente.
+  function registrarAbono(cliente) {
     setMensaje('')
-    const entrada = window.prompt(
-      `¿Cuánto abona ${cliente.nombre}? (L)\nDebe: L ${cliente.saldo.toFixed(2)}`
-    )
-    if (entrada === null) return
+    setAbonoCliente(cliente)
+  }
 
-    const montoAbono = Number(entrada)
-    if (!montoAbono || montoAbono <= 0) {
-      setMensaje('El monto del abono debe ser un número mayor que cero.')
-      return
-    }
-
+  // Guarda el abono (lo llama el modal). Devuelve true si salió bien.
+  async function confirmarAbono(cliente, montoAbono) {
     const { error } = await crearAbono({
       clienteId: cliente.id,
       monto: montoAbono,
@@ -519,11 +515,12 @@ function App() {
 
     if (error) {
       setMensaje('Error al registrar el abono: ' + error.message)
-      return
+      return false
     }
 
     setMensaje(`Abono de L ${montoAbono.toFixed(2)} registrado para ${cliente.nombre}.`)
-    cargarClientes()
+    await cargarClientes()
+    return true
   }
 
   // Borrado lógico (soft delete): marca el movimiento en vez de eliminarlo
@@ -881,6 +878,14 @@ function App() {
           </button>
         ))}
       </nav>
+
+      {abonoCliente && (
+        <ModalAbono
+          cliente={abonoCliente}
+          onConfirmar={confirmarAbono}
+          onCerrar={() => setAbonoCliente(null)}
+        />
+      )}
     </div>
   )
 }
@@ -1247,6 +1252,63 @@ function Onboarding({ nombreSugerido, onListo }) {
             <div><button className="btn-quiet" onClick={() => { setModo('elegir'); setError('') }}>← Volver</button></div>
           )}
           <div><button className="btn-quiet btn-muted" onClick={salir}>Cerrar sesión</button></div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// =======================================================================
+// Modal para registrar un abono (reemplaza al prompt del navegador).
+// =======================================================================
+function ModalAbono({ cliente, onConfirmar, onCerrar }) {
+  const [monto, setMonto] = useState('')
+  const [error, setError] = useState('')
+  const [procesando, setProcesando] = useState(false)
+
+  async function abonar() {
+    const n = Number(monto)
+    if (!n || n <= 0) {
+      setError('Escribe un monto mayor que cero.')
+      return
+    }
+    setProcesando(true)
+    const ok = await onConfirmar(cliente, n)
+    setProcesando(false)
+    if (ok) onCerrar()
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onCerrar}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-title">Registrar abono</div>
+        <p className="modal-sub">{cliente.nombre} debe <b>L {cliente.saldo.toFixed(2)}</b></p>
+
+        <label className="field-label">Monto del abono (L)</label>
+        <input
+          className="input"
+          type="number"
+          inputMode="decimal"
+          autoFocus
+          placeholder="0.00"
+          value={monto}
+          onChange={(e) => { setMonto(e.target.value); setError('') }}
+          onKeyDown={(e) => { if (e.key === 'Enter') abonar() }}
+        />
+
+        <div className="modal-quick">
+          <button className="btn btn-sm" onClick={() => { setMonto(cliente.saldo.toFixed(2)); setError('') }}>
+            Pagó todo (L {cliente.saldo.toFixed(2)})
+          </button>
+        </div>
+
+        {error && <p className="msg msg-error">{error}</p>}
+
+        <div className="modal-actions">
+          <button className="btn" onClick={onCerrar} disabled={procesando}>Cancelar</button>
+          <button className="btn btn-primary" onClick={abonar} disabled={procesando}>
+            {procesando ? 'Guardando…' : 'Registrar abono'}
+          </button>
         </div>
       </div>
     </div>
