@@ -110,6 +110,7 @@ function App() {
   const [nombreNegocio, setNombreNegocio] = useState('')
   const [codigoInvitacion, setCodigoInvitacion] = useState('')
   const [rol, setRol] = useState('')
+  const [nombreUsuario, setNombreUsuario] = useState('') // nombre del usuario logueado (perfil)
   const [cargando, setCargando] = useState(true)
   const [sinPerfil, setSinPerfil] = useState(false) // logueado pero sin negocio (ej. entró con Google)
   const [refrescar, setRefrescar] = useState(0) // para recargar el negocio tras el onboarding
@@ -169,13 +170,14 @@ function App() {
       setNombreNegocio('')
       setCodigoInvitacion('')
       setRol('')
+      setNombreUsuario('')
       setSinPerfil(false)
       return
     }
     async function cargarNegocio() {
       const { data, error } = await supabase
         .from('perfiles')
-        .select('negocio_id, rol, negocios(nombre, codigo_invitacion)')
+        .select('negocio_id, rol, nombre, negocios(nombre, codigo_invitacion)')
         .eq('id', session.user.id)
         .maybeSingle()
 
@@ -192,6 +194,7 @@ function App() {
       setSinPerfil(false)
       setNegocioId(data.negocio_id)
       setRol(data.rol || '')
+      setNombreUsuario(data.nombre || '')
       setNombreNegocio(data.negocios?.nombre || '')
       setCodigoInvitacion(data.negocios?.codigo_invitacion || '')
     }
@@ -826,6 +829,18 @@ function App() {
           {vista === 'ajustes' && (
             <>
               <div className="view-head"><h1 className="view-title">Ajustes</h1></div>
+
+              <div className="card">
+                <div className="card-title">Mi cuenta</div>
+                <div className="cuenta">
+                  <div className="avatar avatar-lg">{inicialesDe(nombreUsuario || session.user.email)}</div>
+                  <div className="cuenta-info">
+                    <div className="cuenta-nombre">{nombreUsuario || 'Sin nombre'}</div>
+                    <div className="cuenta-correo">{session.user.email}</div>
+                    <span className="rol-badge">{rol === 'duena' ? 'Dueña' : 'Empleado'}</span>
+                  </div>
+                </div>
+              </div>
 
               {rol === 'duena' && codigoInvitacion && (
                 <div className="card">
