@@ -51,3 +51,6 @@ Prototipo funcional del módulo de fiados (MVP). El módulo de menú diario qued
 ## Autor
 
 José Nahún Reyes — Ingeniería de Software I, CEUTEC/UNITEC.
+## Verificación del proyecto (capstone)
+
+Código de verificación: `LEARN-CAP-0EC01F9A`
