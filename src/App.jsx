@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 import { calcularSaldoCliente, buscarClienteExistente } from './lib/creditos'
 import { sinAcentos } from './lib/texto'
@@ -569,20 +570,9 @@ function App() {
     return <NuevaPassword onListo={() => setModoRecuperacion(false)} />
   }
 
-  if (!session) {
-    return <Auth />
-  }
-
-  if (sinPerfil) {
-    return (
-      <Onboarding
-        nombreSugerido={session.user.user_metadata?.full_name || session.user.user_metadata?.name || ''}
-        onListo={() => { setSinPerfil(false); setRefrescar((n) => n + 1) }}
-      />
-    )
-  }
-
-  return (
+  // El portal (la app privada). Es una función para no construir su JSX
+  // cuando no hay sesión. Usa todo el estado de arriba por closure.
+  const renderPortal = () => (
     <div className="shell">
       {/* Menú lateral (PC) */}
       <aside className="side">
@@ -902,6 +892,33 @@ function App() {
         />
       )}
     </div>
+  )
+
+  // Rutas con URLs propias: /login, /app (privado) y 404.
+  return (
+    <Routes>
+      <Route
+        path="/login"
+        element={session ? <Navigate to="/app" replace /> : <Auth />}
+      />
+      <Route
+        path="/app/*"
+        element={
+          !session ? (
+            <Navigate to="/login" replace />
+          ) : sinPerfil ? (
+            <Onboarding
+              nombreSugerido={session.user.user_metadata?.full_name || session.user.user_metadata?.name || ''}
+              onListo={() => { setSinPerfil(false); setRefrescar((n) => n + 1) }}
+            />
+          ) : (
+            renderPortal()
+          )
+        }
+      />
+      <Route path="/" element={<Navigate to={session ? '/app' : '/login'} replace />} />
+      <Route path="*" element={<NoEncontrado />} />
+    </Routes>
   )
 }
 
@@ -1496,6 +1513,25 @@ function NuevaPassword({ onListo }) {
 
         {error && <p className="msg msg-error">{error}</p>}
         {aviso && <p className="msg msg-ok">{aviso}</p>}
+      </div>
+    </div>
+  )
+}
+
+// =======================================================================
+// Página 404 (ruta no encontrada)
+// =======================================================================
+function NoEncontrado() {
+  return (
+    <div className="screen" style={{ textAlign: 'center' }}>
+      <div className="brand">
+        <div className="brand-mark">📓</div>
+        <div className="brand-name">Control de Créditos</div>
+      </div>
+      <div className="card">
+        <div className="card-title">Página no encontrada</div>
+        <p className="empty">La dirección que buscás no existe.</p>
+        <a className="btn btn-primary btn-block" href="/app">Ir al inicio</a>
       </div>
     </div>
   )
