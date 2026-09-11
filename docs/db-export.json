@@ -1,0 +1,344 @@
+{
+  "generado_at": "2026-09-11T15:44:22Z",
+  "motor": "postgres",
+  "tablas": [
+    {
+      "nombre": "clientes",
+      "filas": 45,
+      "columnas": [
+        {
+          "nombre": "id",
+          "tipo": "bigint",
+          "pk": true,
+          "nulo": false
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "text",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "telefono",
+          "tipo": "text",
+          "pk": false,
+          "nulo": true
+        },
+        {
+          "nombre": "creado_en",
+          "tipo": "timestamp with time zone",
+          "pk": false,
+          "nulo": true
+        },
+        {
+          "nombre": "negocio_id",
+          "tipo": "uuid",
+          "pk": false,
+          "nulo": true
+        }
+      ],
+      "indices": [
+        "clientes_nombre_negocio_unico",
+        "clientes_pkey"
+      ],
+      "relaciones": [
+        {
+          "columna": "negocio_id",
+          "referencia": "negocios.id"
+        }
+      ],
+      "politicas_rls": [
+        "clientes de mi negocio"
+      ]
+    },
+    {
+      "nombre": "movimiento_detalle",
+      "filas": 532,
+      "columnas": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true,
+          "nulo": false
+        },
+        {
+          "nombre": "movimiento_id",
+          "tipo": "bigint",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "negocio_id",
+          "tipo": "uuid",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "producto_nombre",
+          "tipo": "text",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "cantidad",
+          "tipo": "integer",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "precio_unitario",
+          "tipo": "numeric",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "creado_en",
+          "tipo": "timestamp with time zone",
+          "pk": false,
+          "nulo": true
+        }
+      ],
+      "indices": [
+        "movimiento_detalle_pkey"
+      ],
+      "relaciones": [
+        {
+          "columna": "negocio_id",
+          "referencia": "negocios.id"
+        },
+        {
+          "columna": "movimiento_id",
+          "referencia": "movimientos.id"
+        }
+      ],
+      "politicas_rls": [
+        "detalle de mi negocio"
+      ]
+    },
+    {
+      "nombre": "movimientos",
+      "filas": 571,
+      "columnas": [
+        {
+          "nombre": "id",
+          "tipo": "bigint",
+          "pk": true,
+          "nulo": false
+        },
+        {
+          "nombre": "cliente_id",
+          "tipo": "bigint",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "tipo",
+          "tipo": "text",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "monto",
+          "tipo": "numeric",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "fecha",
+          "tipo": "timestamp with time zone",
+          "pk": false,
+          "nulo": true
+        },
+        {
+          "nombre": "concepto",
+          "tipo": "text",
+          "pk": false,
+          "nulo": true
+        },
+        {
+          "nombre": "negocio_id",
+          "tipo": "uuid",
+          "pk": false,
+          "nulo": true
+        },
+        {
+          "nombre": "registrado_por",
+          "tipo": "uuid",
+          "pk": false,
+          "nulo": true
+        },
+        {
+          "nombre": "eliminado_en",
+          "tipo": "timestamp with time zone",
+          "pk": false,
+          "nulo": true
+        },
+        {
+          "nombre": "eliminado_por",
+          "tipo": "uuid",
+          "pk": false,
+          "nulo": true
+        }
+      ],
+      "indices": [
+        "movimientos_pkey"
+      ],
+      "relaciones": [
+        {
+          "columna": "cliente_id",
+          "referencia": "clientes.id"
+        },
+        {
+          "columna": "negocio_id",
+          "referencia": "negocios.id"
+        },
+        {
+          "columna": "registrado_por",
+          "referencia": "perfiles.id"
+        },
+        {
+          "columna": "eliminado_por",
+          "referencia": "perfiles.id"
+        }
+      ],
+      "politicas_rls": [
+        "movimientos de mi negocio"
+      ]
+    },
+    {
+      "nombre": "negocios",
+      "filas": 6,
+      "columnas": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true,
+          "nulo": false
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "text",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "creado_en",
+          "tipo": "timestamp with time zone",
+          "pk": false,
+          "nulo": true
+        },
+        {
+          "nombre": "codigo_invitacion",
+          "tipo": "text",
+          "pk": false,
+          "nulo": true
+        }
+      ],
+      "indices": [
+        "negocios_codigo_invitacion_key",
+        "negocios_pkey"
+      ],
+      "relaciones": [],
+      "politicas_rls": [
+        "ver mi negocio"
+      ]
+    },
+    {
+      "nombre": "perfiles",
+      "filas": 11,
+      "columnas": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true,
+          "nulo": false
+        },
+        {
+          "nombre": "negocio_id",
+          "tipo": "uuid",
+          "pk": false,
+          "nulo": true
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "text",
+          "pk": false,
+          "nulo": true
+        },
+        {
+          "nombre": "rol",
+          "tipo": "text",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "creado_en",
+          "tipo": "timestamp with time zone",
+          "pk": false,
+          "nulo": true
+        }
+      ],
+      "indices": [
+        "perfiles_pkey"
+      ],
+      "relaciones": [
+        {
+          "columna": "negocio_id",
+          "referencia": "negocios.id"
+        }
+      ],
+      "politicas_rls": [
+        "leer perfiles del mismo negocio",
+        "ver mi perfil"
+      ]
+    },
+    {
+      "nombre": "productos",
+      "filas": 65,
+      "columnas": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true,
+          "nulo": false
+        },
+        {
+          "nombre": "negocio_id",
+          "tipo": "uuid",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "text",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "precio",
+          "tipo": "numeric",
+          "pk": false,
+          "nulo": true
+        },
+        {
+          "nombre": "creado_en",
+          "tipo": "timestamp with time zone",
+          "pk": false,
+          "nulo": true
+        }
+      ],
+      "indices": [
+        "productos_pkey"
+      ],
+      "relaciones": [
+        {
+          "columna": "negocio_id",
+          "referencia": "negocios.id"
+        }
+      ],
+      "politicas_rls": [
+        "productos de mi negocio"
+      ]
+    }
+  ]
+}
