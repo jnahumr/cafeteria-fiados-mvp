@@ -261,11 +261,12 @@ function App() {
   // --- CARRITO ---
   function agregarAlCarrito() {
     setMensaje('')
-    let nombre, precio
+    let nombre, precio, productoId
 
     if (productoSel === 'otro') {
       nombre = productoOtro.trim()
       precio = Number(precioOtro) || 0
+      productoId = null // texto libre: no viene del catálogo
       if (nombre === '') {
         setMensaje('Escribe el nombre del producto (opción Otro).')
         return
@@ -281,6 +282,7 @@ function App() {
       }
       nombre = p.nombre
       precio = Number(p.precio) || 0
+      productoId = p.id // vínculo al catálogo
     }
 
     setCarrito((actual) => {
@@ -292,7 +294,7 @@ function App() {
         copia[idx] = { ...copia[idx], cantidad: copia[idx].cantidad + 1 }
         return copia
       }
-      return [...actual, { nombre, precio, cantidad: 1 }]
+      return [...actual, { nombre, precio, cantidad: 1, productoId }]
     })
 
     setProductoSel('')
@@ -480,6 +482,7 @@ function App() {
     const lineas = carrito.map((l) => ({
       movimiento_id: mov.id,
       negocio_id: negocioId,
+      producto_id: l.productoId ?? null,
       producto_nombre: l.nombre,
       cantidad: l.cantidad,
       precio_unitario: l.precio,
