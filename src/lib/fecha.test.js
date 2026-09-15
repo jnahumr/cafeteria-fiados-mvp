@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatFecha } from './fecha'
+import { formatFecha, formatFechaCorta } from './fecha'
 
 describe('formatFecha', () => {
   it('convierte una fecha UTC a la hora de Honduras', () => {
@@ -9,5 +9,15 @@ describe('formatFecha', () => {
     expect(resultado).toContain('2026')
     expect(resultado).toContain('09') // la hora ya convertida
     expect(resultado).toContain('30') // los minutos
+  })
+})
+
+describe('formatFechaCorta', () => {
+  it('devuelve solo la fecha (sin hora) en formato local de Honduras', () => {
+    const resultado = formatFechaCorta('2026-08-01T15:30:00Z')
+    expect(typeof resultado).toBe('string')
+    expect(resultado).toContain('2026')
+    expect(resultado).toContain('08') // el mes
+    expect(resultado).not.toContain(':') // sin hora
   })
 })

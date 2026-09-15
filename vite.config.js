@@ -31,5 +31,14 @@ export default defineConfig({
         cleanupOutdatedCaches: true
       }
     })
-  ]
+  ],
+  test: {
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json-summary', 'lcovonly'],
+      reportsDirectory: 'coverage',
+      include: ['src/lib/**'],
+      exclude: ['**/*.test.js', 'src/lib/api.js']
+    }
+  }
 })
