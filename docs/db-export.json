@@ -1,5 +1,5 @@
 {
-  "generado_at": "2026-09-11T15:44:22Z",
+  "generado_at": "2026-09-15T00:10:12Z",
   "motor": "postgres",
   "tablas": [
     {
@@ -53,7 +53,7 @@
     },
     {
       "nombre": "movimiento_detalle",
-      "filas": 532,
+      "filas": 567,
       "columnas": [
         {
           "nombre": "id",
@@ -96,9 +96,16 @@
           "tipo": "timestamp with time zone",
           "pk": false,
           "nulo": true
+        },
+        {
+          "nombre": "producto_id",
+          "tipo": "uuid",
+          "pk": false,
+          "nulo": true
         }
       ],
       "indices": [
+        "idx_movimiento_detalle_producto",
         "movimiento_detalle_pkey"
       ],
       "relaciones": [
@@ -109,6 +116,10 @@
         {
           "columna": "movimiento_id",
           "referencia": "movimientos.id"
+        },
+        {
+          "columna": "producto_id",
+          "referencia": "productos.id"
         }
       ],
       "politicas_rls": [
@@ -117,7 +128,7 @@
     },
     {
       "nombre": "movimientos",
-      "filas": 571,
+      "filas": 608,
       "columnas": [
         {
           "nombre": "id",
@@ -185,16 +196,16 @@
       ],
       "relaciones": [
         {
-          "columna": "cliente_id",
-          "referencia": "clientes.id"
+          "columna": "registrado_por",
+          "referencia": "perfiles.id"
         },
         {
           "columna": "negocio_id",
           "referencia": "negocios.id"
         },
         {
-          "columna": "registrado_por",
-          "referencia": "perfiles.id"
+          "columna": "cliente_id",
+          "referencia": "clientes.id"
         },
         {
           "columna": "eliminado_por",
