@@ -1,4 +1,3 @@
-# .github/workflows/ci.yml
 name: CI
 on: [push, pull_request]
 jobs:
@@ -10,7 +9,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - run: npm run lint
       - run: npm test
       - run: npm run build
