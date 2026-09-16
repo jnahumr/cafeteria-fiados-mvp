@@ -1298,6 +1298,12 @@ function Onboarding({ nombreSugerido, onListo }) {
 // =======================================================================
 function ModalAbono({ cliente, onConfirmar, onCerrar }) {
   const [monto, setMonto] = useState('')
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onCerrar() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onCerrar])
   const [error, setError] = useState('')
   const [procesando, setProcesando] = useState(false)
 
@@ -1314,8 +1320,8 @@ function ModalAbono({ cliente, onConfirmar, onCerrar }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onCerrar}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay">
+      <div className="modal">
         <div className="modal-title">Registrar abono</div>
         <p className="modal-sub">{cliente.nombre} debe <b>L {cliente.saldo.toFixed(2)}</b></p>
 
