@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 import { calcularSaldoCliente, buscarClienteExistente } from './lib/creditos'
 import { sinAcentos } from './lib/texto'
@@ -134,7 +134,12 @@ function App() {
   const [precioOtro, setPrecioOtro] = useState('')
 
   // --- Navegación entre secciones ---
-  const [vista, setVista] = useState('inicio') // inicio | clientes | productos | ajustes
+  const location = useLocation()
+  const navigate = useNavigate()
+  // La seccion activa se deriva de la URL: /app/clientes -> 'clientes', /app -> 'inicio'.
+  const seccionUrl = location.pathname.split('/')[2]
+  const vista = ['clientes', 'productos', 'ajustes'].includes(seccionUrl) ? seccionUrl : 'inicio'
+  const irA = (id) => navigate(id === 'inicio' ? '/app' : `/app/${id}`)
   const [clienteAbierto, setClienteAbierto] = useState(null) // id del cliente en detalle
   const [filtroCli, setFiltroCli] = useState('todos') // todos | deuda | aldia
   const [busquedaCli, setBusquedaCli] = useState('')
@@ -596,7 +601,7 @@ function App() {
             <button
               key={it.id}
               className={`nav-i ${vista === it.id ? 'on' : ''}`}
-              onClick={() => { setVista(it.id); setClienteAbierto(null) }}
+              onClick={() => { irA(it.id); setClienteAbierto(null) }}
             >
               <Icono name={it.icon} /> {it.label}
             </button>
@@ -887,7 +892,7 @@ function App() {
           <button
             key={it.id}
             className={`bn ${vista === it.id ? 'on' : ''}`}
-            onClick={() => { setVista(it.id); setClienteAbierto(null) }}
+            onClick={() => { irA(it.id); setClienteAbierto(null) }}
           >
             <Icono name={it.icon} />
             <span>{it.label}</span>
