@@ -149,13 +149,21 @@ function App() {
 
   // === 1. Al iniciar: revisar sesión y escuchar cambios ===
   useEffect(() => {
+    const marcarCookie = (haySesion) => {
+      document.cookie = haySesion
+        ? 'sesion=1; path=/; max-age=2592000; SameSite=Lax'
+        : 'sesion=; path=/; max-age=0; SameSite=Lax'
+    }
+
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
+      marcarCookie(data.session)
       setCargando(false)
     })
 
     const { data: sub } = supabase.auth.onAuthStateChange((evento, nuevaSesion) => {
       setSession(nuevaSesion)
+      marcarCookie(nuevaSesion)
       if (evento === 'PASSWORD_RECOVERY') {
         setModoRecuperacion(true)
       }
