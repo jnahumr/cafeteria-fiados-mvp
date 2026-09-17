@@ -1,4 +1,8 @@
 {
+  "redirects": [
+    { "source": "/app", "missing": [{ "type": "cookie", "key": "sesion" }], "destination": "/login", "permanent": false },
+    { "source": "/app/:path*", "missing": [{ "type": "cookie", "key": "sesion" }], "destination": "/login", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
