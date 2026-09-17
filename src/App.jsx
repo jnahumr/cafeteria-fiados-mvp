@@ -1019,18 +1019,19 @@ function Auth() {
     return enviarRecuperacion()
   }
 
-  const titulo =
-    modo === 'login' ? 'Iniciar sesión'
-      : modo === 'crear' ? 'Registrar mi negocio'
-        : modo === 'unir' ? 'Unirme a un negocio'
-          : 'Recuperar contraseña'
+  const titulos = {
+    login: 'Iniciar sesión',
+    crear: 'Registrar mi negocio',
+    unir: 'Unirme a un negocio',
+  }
+  const titulo = titulos[modo] || 'Recuperar contraseña'
 
-  const textoBoton =
-    procesando ? 'Procesando...'
-      : modo === 'login' ? 'Entrar'
-        : modo === 'crear' ? 'Crear cuenta'
-          : modo === 'unir' ? 'Unirme'
-            : 'Enviar enlace'
+  const textosBoton = {
+    login: 'Entrar',
+    crear: 'Crear cuenta',
+    unir: 'Unirme',
+  }
+  const textoBoton = procesando ? 'Procesando...' : (textosBoton[modo] || 'Enviar enlace')
 
   return (
     <div className="screen">
