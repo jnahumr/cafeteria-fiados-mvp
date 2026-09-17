@@ -4,7 +4,9 @@
     { "source": "/app/:path*", "missing": [{ "type": "cookie", "key": "sesion" }], "destination": "/login", "permanent": false }
   ],
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/login", "destination": "/index.html" },
+    { "source": "/app", "destination": "/index.html" },
+    { "source": "/app/:path*", "destination": "/index.html" }
   ],
   "headers": [
     {
