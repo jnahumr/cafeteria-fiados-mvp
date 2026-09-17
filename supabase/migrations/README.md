@@ -22,6 +22,7 @@ porque respetan las dependencias entre objetos:
 | 0010 | handle_new_user | trigger de alta de usuario (→ negocios, perfiles) |
 | 0011 | onboarding_rpcs | RPCs `crear_/unirse_negocio_onboarding` + grants |
 | 0012 | movimiento_detalle_producto_id | agrega `producto_id` (FK → productos) + índice + backfill |
+| 0013 | admin_overview | tabla admins + es_admin() + admin_overview() (panel admin) |
 
 ## Idempotencia
 
