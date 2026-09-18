@@ -24,4 +24,3 @@ dist-ssr
 *.sw?
 supabase/.temp/
 .env.example
-coverage
