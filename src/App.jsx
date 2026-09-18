@@ -4,7 +4,8 @@ import { supabase } from './supabaseClient'
 import { calcularSaldoCliente, buscarClienteExistente } from './lib/creditos'
 import { sinAcentos } from './lib/texto'
 import { formatFecha, formatFechaCorta } from './lib/fecha'
-import { obtenerProductos, crearProducto, eliminarProductoPorId, obtenerClientes, obtenerMovimientos, crearCliente, actualizarCliente, crearMovimientoFiado, crearDetalleMovimiento, crearAbono, marcarMovimientoEliminado, crearNegocioOnboarding, unirseNegocioOnboarding } from './lib/api'
+import { obtenerProductos, crearProducto, eliminarProductoPorId, obtenerClientes, obtenerMovimientos, crearCliente, actualizarCliente, crearMovimientoFiado, crearDetalleMovimiento, crearAbono, marcarMovimientoEliminado, crearNegocioOnboarding, unirseNegocioOnboarding, esAdmin } from './lib/api'
+import AdminPanel from './AdminPanel'
 
 
 
@@ -107,6 +108,7 @@ function Icono({ name }) {
 function App() {
   // --- Estado de sesión y negocio ---
   const [session, setSession] = useState(null)
+  const [esAdminUsuario, setEsAdminUsuario] = useState(false)
   const [negocioId, setNegocioId] = useState(null)
   const [nombreNegocio, setNombreNegocio] = useState('')
   const [codigoInvitacion, setCodigoInvitacion] = useState('')
@@ -160,15 +162,23 @@ function App() {
         : 'sesion=; path=/; max-age=0; SameSite=Lax'
     }
 
+    const revisarAdmin = async (sesion) => {
+      if (!sesion) { setEsAdminUsuario(false); return }
+      const { data } = await esAdmin()
+      setEsAdminUsuario(data === true)
+    }
+
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
       marcarCookie(data.session)
+      revisarAdmin(data.session)
       setCargando(false)
     })
 
     const { data: sub } = supabase.auth.onAuthStateChange((evento, nuevaSesion) => {
       setSession(nuevaSesion)
       marcarCookie(nuevaSesion)
+      revisarAdmin(nuevaSesion)
       if (evento === 'PASSWORD_RECOVERY') {
         setModoRecuperacion(true)
       }
@@ -606,6 +616,11 @@ function App() {
               <Icono name={it.icon} /> {it.label}
             </button>
           ))}
+          {esAdminUsuario && (
+            <button className="nav-i" onClick={() => navigate('/admin')}>
+              🛡️ Admin
+            </button>
+          )}
         </nav>
         <div className="side-foot">
           {nombreNegocio && <div className="side-negocio">{nombreNegocio}</div>}
@@ -929,6 +944,18 @@ function App() {
             />
           ) : (
             renderPortal()
+          )
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          !session ? (
+            <Navigate to="/login" replace />
+          ) : !esAdminUsuario ? (
+            <Navigate to="/app" replace />
+          ) : (
+            <AdminPanel />
           )
         }
       />

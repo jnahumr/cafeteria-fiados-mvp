@@ -141,3 +141,11 @@ export async function unirseNegocioOnboarding({ codigo, nombreUsuario }) {
     p_nombre_usuario: nombreUsuario,
   })
 }
+
+// --- ADMIN (panel de plataforma) ---
+export async function esAdmin() {
+  return await supabase.rpc('es_admin')
+}
+export async function obtenerAdminOverview() {
+  return await supabase.rpc('admin_overview')
+}

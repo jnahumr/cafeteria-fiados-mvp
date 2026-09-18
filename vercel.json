@@ -1,12 +1,14 @@
 {
   "redirects": [
     { "source": "/app", "missing": [{ "type": "cookie", "key": "sesion" }], "destination": "/login", "permanent": false },
-    { "source": "/app/:path*", "missing": [{ "type": "cookie", "key": "sesion" }], "destination": "/login", "permanent": false }
+    { "source": "/app/:path*", "missing": [{ "type": "cookie", "key": "sesion" }], "destination": "/login", "permanent": false },
+    { "source": "/admin", "missing": [{ "type": "cookie", "key": "sesion" }], "destination": "/login", "permanent": false }
   ],
   "rewrites": [
     { "source": "/login", "destination": "/index.html" },
     { "source": "/app", "destination": "/index.html" },
-    { "source": "/app/:path*", "destination": "/index.html" }
+    { "source": "/app/:path*", "destination": "/index.html" },
+    { "source": "/admin", "destination": "/index.html" }
   ],
   "headers": [
     {
