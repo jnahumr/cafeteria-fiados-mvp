@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { obtenerAdminOverview } from './lib/api'
+import { obtenerAdminOverview, obtenerFeedbackAdmin } from './lib/api'
 
 const est = {
   wrap: { maxWidth: 920, margin: '0 auto', padding: 20 },
@@ -19,6 +19,7 @@ export default function AdminPanel() {
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(true)
+  const [feedback, setFeedback] = useState(null)
 
   useEffect(() => {
     obtenerAdminOverview().then(({ data, error }) => {
@@ -26,6 +27,10 @@ export default function AdminPanel() {
       else setDatos(data || [])
       setCargando(false)
     })
+  }, [])
+
+  useEffect(() => {
+    obtenerFeedbackAdmin().then(({ data }) => setFeedback(data || []))
   }, [])
 
   if (cargando) return <div style={est.wrap}>Cargando panel…</div>
@@ -70,6 +75,34 @@ export default function AdminPanel() {
           </tbody>
         </table>
       </div>
+
+      <h2 style={{ color: '#15734B', fontSize: 18, marginTop: 28, marginBottom: 12 }}>
+        Retroalimentación de usuarios
+      </h2>
+      {!feedback ? (
+        <p style={{ color: '#999' }}>Cargando opiniones…</p>
+      ) : feedback.length === 0 ? (
+        <p style={{ color: '#999' }}>Todavía no hay opiniones.</p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {feedback.map((f) => (
+            <div key={f.id} style={{ background: '#fff', border: '1px solid #eee', borderRadius: 12, padding: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <strong style={{ fontSize: 14 }}>
+                  {f.autor || 'Usuario'} <span style={{ color: '#888', fontWeight: 400 }}>· {f.negocio}</span>
+                </strong>
+                <span style={{ color: '#f5a623', letterSpacing: 1 }}>
+                  {'★'.repeat(f.calificacion)}<span style={{ color: '#d0d0d0' }}>{'★'.repeat(5 - f.calificacion)}</span>
+                </span>
+              </div>
+              <p style={{ margin: '8px 0 4px', fontSize: 14, color: '#333', whiteSpace: 'pre-wrap' }}>{f.comentario}</p>
+              <span style={{ fontSize: 12, color: '#999' }}>
+                {f.creado_en ? new Date(f.creado_en).toLocaleDateString('es-HN', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
