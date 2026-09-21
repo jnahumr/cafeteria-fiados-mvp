@@ -6,18 +6,26 @@ const VERDE = '#15734B'
 function Estrellas({ valor, onChange }) {
   return (
     <div style={{ display: 'flex', gap: 2 }}>
-      {[1, 2, 3, 4, 5].map((n) => (
-        <span
-          key={n}
-          onClick={onChange ? () => onChange(n) : undefined}
-          style={{
-            cursor: onChange ? 'pointer' : 'default',
-            fontSize: onChange ? 28 : 18,
-            color: n <= valor ? '#f5a623' : '#d0d0d0',
-            lineHeight: 1,
-          }}
-        >★</span>
-      ))}
+      {[1, 2, 3, 4, 5].map((n) =>
+        onChange ? (
+          <button
+            key={n}
+            type="button"
+            onClick={() => onChange(n)}
+            aria-label={`${n} de 5 estrellas`}
+            style={{
+              background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+              fontSize: 28, lineHeight: 1, color: n <= valor ? '#f5a623' : '#d0d0d0',
+            }}
+          >★</button>
+        ) : (
+          <span
+            key={n}
+            aria-hidden="true"
+            style={{ fontSize: 18, lineHeight: 1, color: n <= valor ? '#f5a623' : '#d0d0d0' }}
+          >★</span>
+        )
+      )}
     </div>
   )
 }
