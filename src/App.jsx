@@ -4,6 +4,7 @@ import { supabase } from './supabaseClient'
 import { calcularSaldoCliente, buscarClienteExistente } from './lib/creditos'
 import { sinAcentos } from './lib/texto'
 import { formatFecha, formatFechaCorta } from './lib/fecha'
+import Feedback from './Feedback'
 import { obtenerProductos, crearProducto, eliminarProductoPorId, obtenerClientes, obtenerMovimientos, crearCliente, actualizarCliente, crearMovimientoFiado, crearDetalleMovimiento, crearAbono, marcarMovimientoEliminado, crearNegocioOnboarding, unirseNegocioOnboarding, esAdmin } from './lib/api'
 import AdminPanel from './AdminPanel'
 
@@ -85,8 +86,9 @@ const NAV = [
   { id: 'clientes', label: 'Clientes', icon: 'users' },
   { id: 'productos', label: 'Productos', icon: 'tag' },
   { id: 'ajustes', label: 'Ajustes', icon: 'settings' },
+  { id: 'feedback', label: 'Opiniones', icon: 'star' },
 ]
-
+  
 // Íconos SVG en línea (trazo con color heredado).
 function Icono({ name }) {
   const p = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true }
@@ -138,9 +140,10 @@ function App() {
   // --- Navegación entre secciones ---
   const location = useLocation()
   const navigate = useNavigate()
+
   // La seccion activa se deriva de la URL: /app/clientes -> 'clientes', /app -> 'inicio'.
   const seccionUrl = location.pathname.split('/')[2]
-  const vista = ['clientes', 'productos', 'ajustes'].includes(seccionUrl) ? seccionUrl : 'inicio'
+  const vista = ['clientes', 'productos', 'ajustes', 'feedback'].includes(seccionUrl) ? seccionUrl : 'inicio'
   const irA = (id) => navigate(id === 'inicio' ? '/app' : `/app/${id}`)
   const [clienteAbierto, setClienteAbierto] = useState(null) // id del cliente en detalle
   const [filtroCli, setFiltroCli] = useState('todos') // todos | deuda | aldia
@@ -896,6 +899,10 @@ function App() {
 
               <button className="btn btn-block btn-lg" onClick={cerrarSesion}>Cerrar sesión</button>
             </>
+          )}
+
+          {vista === 'feedback' && (
+            <Feedback autorNombre={nombreUsuario} />
           )}
 
         </div>

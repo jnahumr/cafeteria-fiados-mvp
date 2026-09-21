@@ -149,3 +149,26 @@ export async function esAdmin() {
 export async function obtenerAdminOverview() {
   return await supabase.rpc('admin_overview')
 }
+
+export async function obtenerFeedbackAdmin() {
+  return await supabase.rpc('admin_feedback')
+}
+// --- FEEDBACK (retroalimentación de usuarios) ---
+
+// Trae el feedback del negocio (RLS filtra por negocio automáticamente).
+export async function obtenerFeedback() {
+  return await supabase
+    .from('feedback')
+    .select('*')
+    .order('creado_en', { ascending: false })
+    .limit(50)
+}
+
+// Inserta un feedback. negocio_id y user_id los pone la BD por default.
+export async function crearFeedback({ autor, calificacion, comentario }) {
+  return await supabase
+    .from('feedback')
+    .insert({ autor, calificacion, comentario })
+    .select()
+    .single()
+}
