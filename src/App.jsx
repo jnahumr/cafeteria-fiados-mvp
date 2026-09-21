@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 import { calcularSaldoCliente, buscarClienteExistente } from './lib/creditos'
@@ -116,6 +116,20 @@ function App() {
   const [codigoInvitacion, setCodigoInvitacion] = useState('')
   const [rol, setRol] = useState('')
   const [nombreUsuario, setNombreUsuario] = useState('') // nombre del usuario logueado (perfil)
+    // Evita registrar el mismo fiado dos veces por doble clic (idempotencia en la UI).
+  const guardandoFiadoRef = useRef(false)
+  const [guardandoFiado, setGuardandoFiado] = useState(false)
+  async function registrarFiadoSeguro() {
+    if (guardandoFiadoRef.current) return
+    guardandoFiadoRef.current = true
+    setGuardandoFiado(true)
+    try {
+      await registrarFiado()
+    } finally {
+      guardandoFiadoRef.current = false
+      setGuardandoFiado(false)
+    }
+  }
   const [cargando, setCargando] = useState(true)
   const [sinPerfil, setSinPerfil] = useState(false) // logueado pero sin negocio (ej. entró con Google)
   const [refrescar, setRefrescar] = useState(0) // para recargar el negocio tras el onboarding
@@ -728,7 +742,7 @@ function App() {
                     </div>
                   )}
 
-                  <button className="btn btn-primary btn-block btn-lg" onClick={registrarFiado} style={{ marginTop: '1rem' }}>Guardar fiado</button>
+                  <button className="btn btn-primary btn-block btn-lg" onClick={registrarFiadoSeguro} disabled={guardandoFiado} style={{ marginTop: '1rem' }}>{guardandoFiado ? 'Guardando…' : 'Guardar fiado'}</button>
                   {mensaje && <p className="msg msg-ok">{mensaje}</p>}
                 </div>
 
