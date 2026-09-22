@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 supabase/.temp/
 .env.example
+
+# Playwright (E2E)
+playwright-report/
+test-results/
+blob-report/
