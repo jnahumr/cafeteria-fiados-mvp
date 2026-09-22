@@ -952,6 +952,23 @@ function App() {
     </div>
   )
 
+  // Qué mostrar en /app según el estado de la sesión y de la cuenta.
+  function renderRutaApp() {
+    if (!session) return <Navigate to="/login" replace />
+    if (estadoCuenta !== 'activo') {
+      return <CuentaDeshabilitada estado={estadoCuenta} onSalir={cerrarSesion} />
+    }
+    if (sinPerfil) {
+      return (
+        <Onboarding
+          nombreSugerido={session.user.user_metadata?.full_name || session.user.user_metadata?.name || ''}
+          onListo={() => { setSinPerfil(false); setRefrescar((n) => n + 1) }}
+        />
+      )
+    }
+    return renderPortal()
+  }
+
   // Rutas con URLs propias: /login, /app (privado) y 404.
   return (
     <Routes>
@@ -961,20 +978,7 @@ function App() {
       />
       <Route
         path="/app/*"
-        element={
-          !session ? (
-            <Navigate to="/login" replace />
-          ) : estadoCuenta !== 'activo' ? (
-            <CuentaDeshabilitada estado={estadoCuenta} onSalir={cerrarSesion} />
-          ) : sinPerfil ? (
-            <Onboarding
-              nombreSugerido={session.user.user_metadata?.full_name || session.user.user_metadata?.name || ''}
-              onListo={() => { setSinPerfil(false); setRefrescar((n) => n + 1) }}
-            />
-          ) : (
-            renderPortal()
-          )
-        }
+        element={renderRutaApp()}
       />
       <Route
         path="/admin"
