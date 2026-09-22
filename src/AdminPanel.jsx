@@ -154,7 +154,7 @@ function ControlAcceso() {
                           {nombre} {u.es_yo && <span style={est.sub}>(vos)</span>}
                         </div>
                         <div style={est.sub}>
-                          {u.rol === 'duena' ? 'Dueña' : 'Empleado'}{u.correo ? ` · ${u.correo}` : ''}
+                          {u.rol === 'duena' ? 'Propietario' : 'Empleado'}{u.correo ? ` · ${u.correo}` : ''}
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -205,7 +205,7 @@ function ListaFeedback({ feedback }) {
   )
 }
 
-export default function AdminPanel() {
+export default function AdminPanel({ onSalir }) {
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(true)
@@ -232,7 +232,7 @@ export default function AdminPanel() {
     <div style={est.wrap}>
       <div style={est.top}>
         <h1 style={est.h1}>Panel de administración</h1>
-        <a href="/app" style={est.volver}>Volver a la app</a>
+        <button type="button" onClick={onSalir} style={{ ...est.volver, border: 'none', cursor: 'pointer', fontSize: 14 }}>Cerrar sesión</button>
       </div>
       <div style={est.cards}>
         <div style={est.card}><div style={est.num}>{datos.length}</div><div>Negocios</div></div>

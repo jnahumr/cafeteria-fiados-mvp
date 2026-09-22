@@ -111,6 +111,7 @@ function App() {
   // --- Estado de sesión y negocio ---
   const [session, setSession] = useState(null)
   const [esAdminUsuario, setEsAdminUsuario] = useState(false)
+  const [adminVerificado, setAdminVerificado] = useState(false) // ya sabemos si es admin (evita parpadeos)
   const [negocioId, setNegocioId] = useState(null)
   const [nombreNegocio, setNombreNegocio] = useState('')
   const [codigoInvitacion, setCodigoInvitacion] = useState('')
@@ -181,9 +182,11 @@ function App() {
     }
 
     const revisarAdmin = async (sesion) => {
-      if (!sesion) { setEsAdminUsuario(false); return }
+      if (!sesion) { setEsAdminUsuario(false); setAdminVerificado(true); return }
+      setAdminVerificado(false)
       const { data } = await esAdmin()
       setEsAdminUsuario(data === true)
+      setAdminVerificado(true)
     }
 
     supabase.auth.getSession().then(({ data }) => {
@@ -607,13 +610,7 @@ function App() {
 
 
 
-  if (cargando) {
-    return (
-      <div className="screen" style={{ textAlign: 'center', color: 'var(--ink-soft)' }}>
-        Cargando…
-      </div>
-    )
-  }
+  if (cargando) return <PantallaCargando />
 
   if (modoRecuperacion) {
     return <NuevaPassword onListo={() => setModoRecuperacion(false)} />
@@ -881,7 +878,7 @@ function App() {
                   <div className="cuenta-info">
                     <div className="cuenta-nombre">{nombreUsuario || 'Sin nombre'}</div>
                     <div className="cuenta-correo">{session.user.email}</div>
-                    <span className="rol-badge">{rol === 'duena' ? 'Dueña' : 'Empleado'}</span>
+                    <span className="rol-badge">{rol === 'duena' ? 'Propietario' : 'Empleado'}</span>
                   </div>
                 </div>
               </div>
@@ -955,6 +952,9 @@ function App() {
   // Qué mostrar en /app según el estado de la sesión y de la cuenta.
   function renderRutaApp() {
     if (!session) return <Navigate to="/login" replace />
+    // El admin de la plataforma no tiene negocio: siempre va a su panel.
+    if (!adminVerificado) return <PantallaCargando />
+    if (esAdminUsuario) return <Navigate to="/admin" replace />
     if (estadoCuenta !== 'activo') {
       return <CuentaDeshabilitada estado={estadoCuenta} onSalir={cerrarSesion} />
     }
@@ -988,7 +988,7 @@ function App() {
           ) : !esAdminUsuario ? (
             <Navigate to="/app" replace />
           ) : (
-            <AdminPanel />
+            <AdminPanel onSalir={cerrarSesion} />
           )
         }
       />
@@ -1604,6 +1604,14 @@ function NuevaPassword({ onListo }) {
 // =======================================================================
 // Página 404 (ruta no encontrada)
 // =======================================================================
+function PantallaCargando() {
+  return (
+    <div className="screen" style={{ textAlign: 'center', color: 'var(--ink-soft)' }}>
+      Cargando…
+    </div>
+  )
+}
+
 // Pantalla para usuarios o negocios deshabilitados por el administrador.
 function CuentaDeshabilitada({ estado, onSalir }) {
   const texto = estado === 'negocio_deshabilitado'

@@ -5,7 +5,7 @@ Esquema de la base (Supabase / PostgreSQL) del proyecto, en migraciones
 
 ## Orden canónico
 
-Los archivos se numeran (`0001`…`0016`) y deben ejecutarse en ese orden,
+Los archivos se numeran (`0001`…`0017`) y deben ejecutarse en ese orden,
 porque respetan las dependencias entre objetos:
 
 | # | Archivo | Crea |
@@ -26,6 +26,7 @@ porque respetan las dependencias entre objetos:
 | 0014 | feedback | tabla `feedback` + índice + políticas RLS por negocio |
 | 0015 | admin_feedback | función `admin_feedback()`: todo el feedback, solo para admins |
 | 0016 | control_acceso_admin | columnas `activo`; `mi_negocio_id()` bloquea deshabilitados; RPCs admin para habilitar/deshabilitar usuarios y negocios |
+| 0017 | admin_sin_negocio | el onboarding impide que un admin cree o se una a un negocio |
 
 ## Idempotencia
 
@@ -46,8 +47,17 @@ numérico. Como son idempotentes, volver a ejecutar uno ya aplicado es seguro.
 
 ## Convenciones para nuevas migraciones
 
-1. Numerar con el siguiente número libre (`0017_nombre.sql`).
+1. Numerar con el siguiente número libre (`0018_nombre.sql`).
 2. Encabezado con: qué crea, de qué depende y por qué es idempotente.
 3. Nunca modificar una migración ya aplicada: los cambios van en una nueva.
 4. Toda tabla nueva con datos de negocio lleva `negocio_id` y políticas RLS.
 5. Agregar la fila correspondiente en la tabla de este README.
+## Scripts de datos (fuera de las migraciones)
+
+Los cambios de **datos** de una base concreta (por ejemplo, limpiar negocios de
+prueba) no son migraciones: se guardan en `supabase/scripts/` con fecha, se
+ejecutan una sola vez y no forman parte del orden canónico.
+
+| Script | Qué hace |
+|--------|----------|
+| 2026-09_limpieza_negocios_admin | borra los negocios de prueba de las cuentas admin y deja a los admins sin negocio |
