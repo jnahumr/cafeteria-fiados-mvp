@@ -5,7 +5,7 @@ Esquema de la base (Supabase / PostgreSQL) del proyecto, en migraciones
 
 ## Orden canónico
 
-Los archivos se numeran (`0001`…`0015`) y deben ejecutarse en ese orden,
+Los archivos se numeran (`0001`…`0016`) y deben ejecutarse en ese orden,
 porque respetan las dependencias entre objetos:
 
 | # | Archivo | Crea |
@@ -25,6 +25,7 @@ porque respetan las dependencias entre objetos:
 | 0013 | admin_overview | tabla `admins` + `es_admin()` + `admin_overview()` (panel admin) |
 | 0014 | feedback | tabla `feedback` + índice + políticas RLS por negocio |
 | 0015 | admin_feedback | función `admin_feedback()`: todo el feedback, solo para admins |
+| 0016 | control_acceso_admin | columnas `activo`; `mi_negocio_id()` bloquea deshabilitados; RPCs admin para habilitar/deshabilitar usuarios y negocios |
 
 ## Idempotencia
 
@@ -45,7 +46,7 @@ numérico. Como son idempotentes, volver a ejecutar uno ya aplicado es seguro.
 
 ## Convenciones para nuevas migraciones
 
-1. Numerar con el siguiente número libre (`0016_nombre.sql`).
+1. Numerar con el siguiente número libre (`0017_nombre.sql`).
 2. Encabezado con: qué crea, de qué depende y por qué es idempotente.
 3. Nunca modificar una migración ya aplicada: los cambios van en una nueva.
 4. Toda tabla nueva con datos de negocio lleva `negocio_id` y políticas RLS.

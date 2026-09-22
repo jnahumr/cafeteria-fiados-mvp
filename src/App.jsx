@@ -5,7 +5,7 @@ import { calcularSaldoCliente, buscarClienteExistente } from './lib/creditos'
 import { sinAcentos } from './lib/texto'
 import { formatFecha, formatFechaCorta } from './lib/fecha'
 import Feedback from './Feedback'
-import { obtenerProductos, crearProducto, eliminarProductoPorId, obtenerClientes, obtenerMovimientos, crearCliente, actualizarCliente, crearMovimientoFiado, crearDetalleMovimiento, crearAbono, marcarMovimientoEliminado, crearNegocioOnboarding, unirseNegocioOnboarding, esAdmin } from './lib/api'
+import { obtenerProductos, crearProducto, eliminarProductoPorId, obtenerClientes, obtenerMovimientos, crearCliente, actualizarCliente, crearMovimientoFiado, crearDetalleMovimiento, crearAbono, marcarMovimientoEliminado, crearNegocioOnboarding, unirseNegocioOnboarding, esAdmin, obtenerEstadoCuenta } from './lib/api'
 import AdminPanel from './AdminPanel'
 
 
@@ -132,6 +132,7 @@ function App() {
   }
   const [cargando, setCargando] = useState(true)
   const [sinPerfil, setSinPerfil] = useState(false) // logueado pero sin negocio (ej. entró con Google)
+  const [estadoCuenta, setEstadoCuenta] = useState('activo') // activo | usuario_deshabilitado | negocio_deshabilitado
   const [refrescar, setRefrescar] = useState(0) // para recargar el negocio tras el onboarding
 
   const [modoRecuperacion, setModoRecuperacion] = useState(false)
@@ -213,6 +214,7 @@ function App() {
       setRol('')
       setNombreUsuario('')
       setSinPerfil(false)
+      setEstadoCuenta('activo')
       return
     }
     async function cargarNegocio() {
@@ -233,6 +235,10 @@ function App() {
         return
       }
       setSinPerfil(false)
+      // Si el admin deshabilitó al usuario o a su negocio, no cargamos nada más.
+      const { data: estado } = await obtenerEstadoCuenta()
+      setEstadoCuenta(estado || 'activo')
+      if (estado && estado !== 'activo') return
       setNegocioId(data.negocio_id)
       setRol(data.rol || '')
       setNombreUsuario(data.nombre || '')
@@ -946,6 +952,23 @@ function App() {
     </div>
   )
 
+  // Qué mostrar en /app según el estado de la sesión y de la cuenta.
+  function renderRutaApp() {
+    if (!session) return <Navigate to="/login" replace />
+    if (estadoCuenta !== 'activo') {
+      return <CuentaDeshabilitada estado={estadoCuenta} onSalir={cerrarSesion} />
+    }
+    if (sinPerfil) {
+      return (
+        <Onboarding
+          nombreSugerido={session.user.user_metadata?.full_name || session.user.user_metadata?.name || ''}
+          onListo={() => { setSinPerfil(false); setRefrescar((n) => n + 1) }}
+        />
+      )
+    }
+    return renderPortal()
+  }
+
   // Rutas con URLs propias: /login, /app (privado) y 404.
   return (
     <Routes>
@@ -955,18 +978,7 @@ function App() {
       />
       <Route
         path="/app/*"
-        element={
-          !session ? (
-            <Navigate to="/login" replace />
-          ) : sinPerfil ? (
-            <Onboarding
-              nombreSugerido={session.user.user_metadata?.full_name || session.user.user_metadata?.name || ''}
-              onListo={() => { setSinPerfil(false); setRefrescar((n) => n + 1) }}
-            />
-          ) : (
-            renderPortal()
-          )
-        }
+        element={renderRutaApp()}
       />
       <Route
         path="/admin"
@@ -1592,6 +1604,26 @@ function NuevaPassword({ onListo }) {
 // =======================================================================
 // Página 404 (ruta no encontrada)
 // =======================================================================
+// Pantalla para usuarios o negocios deshabilitados por el administrador.
+function CuentaDeshabilitada({ estado, onSalir }) {
+  const texto = estado === 'negocio_deshabilitado'
+    ? 'El negocio al que pertenecés está deshabilitado.'
+    : 'Tu usuario está deshabilitado.'
+  return (
+    <div className="screen" style={{ textAlign: 'center' }}>
+      <div className="brand">
+        <div className="brand-mark">📓</div>
+        <div className="brand-name">Control de Créditos</div>
+      </div>
+      <div className="card">
+        <div className="card-title">Acceso deshabilitado</div>
+        <p className="empty">{texto} Contactá al administrador para reactivarlo.</p>
+        <button type="button" className="btn btn-primary btn-block" onClick={onSalir}>Cerrar sesión</button>
+      </div>
+    </div>
+  )
+}
+
 function NoEncontrado() {
   return (
     <div className="screen" style={{ textAlign: 'center' }}>

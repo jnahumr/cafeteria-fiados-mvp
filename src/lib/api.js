@@ -172,3 +172,22 @@ export async function crearFeedback({ autor, calificacion, comentario }) {
     .select()
     .single()
 }
+// --- CONTROL DE ACCESO (habilitar / deshabilitar) ---
+
+// Estado de la cuenta actual: 'activo' | 'usuario_deshabilitado' | 'negocio_deshabilitado' | 'sin_perfil'
+export async function obtenerEstadoCuenta() {
+  return await supabase.rpc('mi_estado_cuenta')
+}
+
+// Panel admin: negocios con sus usuarios (solo nombres, correo, rol y estado).
+export async function obtenerAdminUsuarios() {
+  return await supabase.rpc('admin_usuarios')
+}
+
+export async function cambiarEstadoUsuario(userId, activo) {
+  return await supabase.rpc('admin_cambiar_estado_usuario', { p_user_id: userId, p_activo: activo })
+}
+
+export async function cambiarEstadoNegocio(negocioId, activo) {
+  return await supabase.rpc('admin_cambiar_estado_negocio', { p_negocio_id: negocioId, p_activo: activo })
+}
