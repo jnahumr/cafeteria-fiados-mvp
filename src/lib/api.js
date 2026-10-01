@@ -191,3 +191,22 @@ export async function cambiarEstadoUsuario(userId, activo) {
 export async function cambiarEstadoNegocio(negocioId, activo) {
   return await supabase.rpc('admin_cambiar_estado_negocio', { p_negocio_id: negocioId, p_activo: activo })
 }
+
+// --- SUSCRIPCIÓN (período de prueba / pago manual) ---
+
+// Suscripción del negocio actual: { plan, prueba_hasta, pagado_hasta, vence_el, dias_restantes }
+export async function obtenerSuscripcion() {
+  return await supabase.rpc('mi_suscripcion')
+}
+
+// Admin: registra un pago manual y extiende la suscripción N meses.
+export async function registrarPagoNegocio({ negocioId, meses, monto = null, referencia = null }) {
+  return await supabase.rpc('admin_registrar_pago', {
+    p_negocio_id: negocioId, p_meses: meses, p_monto: monto, p_referencia: referencia,
+  })
+}
+
+// Admin: extiende el período de prueba N días.
+export async function extenderPruebaNegocio({ negocioId, dias }) {
+  return await supabase.rpc('admin_extender_prueba', { p_negocio_id: negocioId, p_dias: dias })
+}
