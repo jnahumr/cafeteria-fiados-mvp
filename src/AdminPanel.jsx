@@ -82,18 +82,29 @@ function formatoDia(fechaISO) {
   return new Date(a, m - 1, d).toLocaleDateString('es-HN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-function EtiquetaSuscripcion({ n }) {
+function textoDias(dias) {
+  if (dias === 0) return 'vence hoy'
+  if (dias === 1) return '1 día'
+  return `${dias} días`
+}
+
+function datosEtiqueta(n) {
   const dias = n.dias_restantes
-  const pagado = n.pagado_hasta && n.pagado_hasta >= n.prueba_hasta
-  let texto
-  let colores
   if (dias < 0) {
-    texto = `Vencida hace ${-dias} día${dias === -1 ? '' : 's'}`
-    colores = { background: '#fdecea', color: ROJO }
-  } else {
-    texto = `${pagado ? 'Pagado' : 'Prueba'} · ${dias === 0 ? 'vence hoy' : `${dias} día${dias === 1 ? '' : 's'}`}`
-    colores = dias <= 7 ? { background: '#fff4e0', color: '#B45309' } : { background: '#e3f4ea', color: VERDE }
+    const atraso = -dias
+    return {
+      texto: atraso === 1 ? 'Vencida hace 1 día' : `Vencida hace ${atraso} días`,
+      colores: { background: '#fdecea', color: ROJO },
+    }
   }
+  const pagado = Boolean(n.pagado_hasta) && n.pagado_hasta >= n.prueba_hasta
+  const plan = pagado ? 'Pagado' : 'Prueba'
+  const colores = dias <= 7 ? { background: '#fff4e0', color: '#B45309' } : { background: '#e3f4ea', color: VERDE }
+  return { texto: `${plan} · ${textoDias(dias)}`, colores }
+}
+
+function EtiquetaSuscripcion({ n }) {
+  const { texto, colores } = datosEtiqueta(n)
   return <span style={{ fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 999, ...colores }}>{texto}</span>
 }
 
@@ -114,12 +125,18 @@ function SuscripcionNegocio({ n, onCambio }) {
   async function confirmar() {
     setProcesando(true)
     setError('')
-    const { error } = accion === 'pago'
-      ? await registrarPagoNegocio({
-          negocioId: n.id, meses: Number(meses),
-          monto: monto === '' ? null : Number(monto), referencia: referencia || null,
-        })
-      : await extenderPruebaNegocio({ negocioId: n.id, dias: 7 })
+    let resultado
+    if (accion === 'pago') {
+      resultado = await registrarPagoNegocio({
+        negocioId: n.id,
+        meses: Number(meses),
+        monto: monto === '' ? null : Number(monto),
+        referencia: referencia || null,
+      })
+    } else {
+      resultado = await extenderPruebaNegocio({ negocioId: n.id, dias: 7 })
+    }
+    const { error } = resultado
     setProcesando(false)
     if (error) { setError(error.message); return }
     setAccion(null); setMonto(''); setReferencia(''); setMeses(1)
@@ -149,9 +166,9 @@ function SuscripcionNegocio({ n, onCambio }) {
               {[1, 2, 3, 6, 12].map((m) => <option key={m} value={m}>{m}</option>)}
             </select>
           </label>
-          <input type="number" min="0" step="0.01" placeholder="Monto (L)" value={monto}
+          <input type="number" min="0" step="0.01" placeholder="Monto (L)" aria-label="Monto en lempiras" value={monto}
             onChange={(e) => setMonto(e.target.value)} style={{ width: 100 }} />
-          <input type="text" placeholder="Referencia / nota" value={referencia}
+          <input type="text" placeholder="Referencia / nota" aria-label="Referencia o nota del pago" value={referencia}
             onChange={(e) => setReferencia(e.target.value)} style={{ width: 160 }} />
           <Confirmacion texto="" onSi={confirmar} onNo={() => setAccion(null)} procesando={procesando} />
         </div>

@@ -1634,7 +1634,7 @@ const TEXTOS_DESHABILITADA = {
 
 function CuentaDeshabilitada({ estado, nombreNegocio, onSalir }) {
   const vencida = estado === 'suscripcion_vencida'
-  const texto = TEXTOS_DESHABILITADA[estado] || TEXTOS_DESHABILITADA.usuario_deshabilitado
+  const texto = TEXTOS_DESHABILITADA[estado] ?? TEXTOS_DESHABILITADA.usuario_deshabilitado
   const enlace = vencida ? enlacePago({ telefono: WHATSAPP_SOPORTE, nombreNegocio, vencida: true }) : null
   return (
     <div className="screen" style={{ textAlign: 'center' }}>

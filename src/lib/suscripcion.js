@@ -6,7 +6,7 @@ export const DIAS_AVISO = 7    // desde cuántos días antes se muestra la barra
 export const DIAS_URGENTE = 3  // desde cuántos días antes se pone roja
 
 // Número de WhatsApp para suscribirse (variable VITE_WHATSAPP_SOPORTE en Vercel / .env.local).
-export const WHATSAPP_SOPORTE = import.meta.env.VITE_WHATSAPP_SOPORTE || ''
+export const WHATSAPP_SOPORTE = import.meta.env.VITE_WHATSAPP_SOPORTE ?? ''
 
 // Texto relativo: "hoy", "mañana", "en 5 días".
 export function cuandoVence(dias) {
@@ -32,7 +32,7 @@ export function calcularAviso(suscripcion) {
 // Enlace de WhatsApp para pedir la suscripción (mientras no haya pago en línea).
 // Devuelve null si no hay número configurado.
 export function enlacePago({ telefono, nombreNegocio, vencida = false }) {
-  const numero = String(telefono || '').replace(/\D/g, '')
+  const numero = String(telefono ?? '').replaceAll(/\D/g, '')
   if (!numero) return null
   const negocio = nombreNegocio ? ` para el negocio "${nombreNegocio}"` : ''
   const motivo = vencida ? 'reactivar' : 'activar'

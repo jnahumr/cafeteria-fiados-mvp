@@ -12,7 +12,7 @@ export default function BannerSuscripcion({ suscripcion, esPropietario, nombreNe
   const urgente = aviso.nivel === 'urgente'
 
   return (
-    <div className={`aviso-sub ${urgente ? 'aviso-sub-urgente' : ''}`} role="status">
+    <div className={`aviso-sub ${urgente ? 'aviso-sub-urgente' : ''}`}>
       <span className="aviso-sub-icono" aria-hidden="true">⚠</span>
       <span className="aviso-sub-texto">
         {aviso.texto}
