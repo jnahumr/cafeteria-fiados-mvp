@@ -5,6 +5,8 @@ import {
   obtenerAdminUsuarios,
   cambiarEstadoUsuario,
   cambiarEstadoNegocio,
+  registrarPagoNegocio,
+  extenderPruebaNegocio,
 } from './lib/api'
 
 const VERDE = '#15734B'
@@ -69,6 +71,112 @@ function Confirmacion({ texto, onSi, onNo, procesando }) {
         style={{ background: 'none', border: '1px solid #ccc', borderRadius: 6, padding: '4px 12px', cursor: 'pointer' }}>
         Cancelar
       </button>
+    </div>
+  )
+}
+
+function formatoDia(fechaISO) {
+  if (!fechaISO) return '—'
+  // fechaISO viene como 'AAAA-MM-DD' (tipo date): se arma sin zona horaria.
+  const [a, m, d] = fechaISO.split('-').map(Number)
+  return new Date(a, m - 1, d).toLocaleDateString('es-HN', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function textoDias(dias) {
+  if (dias === 0) return 'vence hoy'
+  if (dias === 1) return '1 día'
+  return `${dias} días`
+}
+
+function datosEtiqueta(n) {
+  const dias = n.dias_restantes
+  if (dias < 0) {
+    const atraso = -dias
+    return {
+      texto: atraso === 1 ? 'Vencida hace 1 día' : `Vencida hace ${atraso} días`,
+      colores: { background: '#fdecea', color: ROJO },
+    }
+  }
+  const pagado = Boolean(n.pagado_hasta) && n.pagado_hasta >= n.prueba_hasta
+  const plan = pagado ? 'Pagado' : 'Prueba'
+  const colores = dias <= 7 ? { background: '#fff4e0', color: '#B45309' } : { background: '#e3f4ea', color: VERDE }
+  return { texto: `${plan} · ${textoDias(dias)}`, colores }
+}
+
+function EtiquetaSuscripcion({ n }) {
+  const { texto, colores } = datosEtiqueta(n)
+  return <span style={{ fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 999, ...colores }}>{texto}</span>
+}
+
+const botonChico = {
+  background: '#fff', color: VERDE, border: `1px solid ${VERDE}`, borderRadius: 8,
+  padding: '5px 10px', fontWeight: 600, fontSize: 12, cursor: 'pointer',
+}
+
+// Suscripción de un negocio: estado + registrar pago manual / extender prueba.
+function SuscripcionNegocio({ n, onCambio }) {
+  const [accion, setAccion] = useState(null) // 'pago' | 'prueba'
+  const [meses, setMeses] = useState(1)
+  const [monto, setMonto] = useState('')
+  const [referencia, setReferencia] = useState('')
+  const [procesando, setProcesando] = useState(false)
+  const [error, setError] = useState('')
+
+  async function confirmar() {
+    setProcesando(true)
+    setError('')
+    let resultado
+    if (accion === 'pago') {
+      resultado = await registrarPagoNegocio({
+        negocioId: n.id,
+        meses: Number(meses),
+        monto: monto === '' ? null : Number(monto),
+        referencia: referencia || null,
+      })
+    } else {
+      resultado = await extenderPruebaNegocio({ negocioId: n.id, dias: 7 })
+    }
+    const { error } = resultado
+    setProcesando(false)
+    if (error) { setError(error.message); return }
+    setAccion(null); setMonto(''); setReferencia(''); setMeses(1)
+    onCambio()
+  }
+
+  return (
+    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed #e5e5e5' }}>
+      <div style={est.fila}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <EtiquetaSuscripcion n={n} />
+          <span style={est.sub}>
+            Prueba hasta {formatoDia(n.prueba_hasta)}
+            {n.pagado_hasta ? ` · Pagado hasta ${formatoDia(n.pagado_hasta)}` : ''}
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button type="button" style={botonChico} disabled={procesando} onClick={() => setAccion('pago')}>Registrar pago</button>
+          <button type="button" style={botonChico} disabled={procesando} onClick={() => setAccion('prueba')}>+7 días de prueba</button>
+        </div>
+      </div>
+      {error && <div style={{ ...est.aviso, marginTop: 8, marginBottom: 0 }}>{error}</div>}
+      {accion === 'pago' && (
+        <div style={est.confirmar}>
+          <label>Meses{' '}
+            <select value={meses} onChange={(e) => setMeses(e.target.value)}>
+              {[1, 2, 3, 6, 12].map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </label>
+          <input type="number" min="0" step="0.01" placeholder="Monto (L)" aria-label="Monto en lempiras" value={monto}
+            onChange={(e) => setMonto(e.target.value)} style={{ width: 100 }} />
+          <input type="text" placeholder="Referencia / nota" aria-label="Referencia o nota del pago" value={referencia}
+            onChange={(e) => setReferencia(e.target.value)} style={{ width: 160 }} />
+          <Confirmacion texto="" onSi={confirmar} onNo={() => setAccion(null)} procesando={procesando} />
+        </div>
+      )}
+      {accion === 'prueba' && (
+        <Confirmacion texto={`¿Extender 7 días la prueba de "${n.nombre}"?`} onSi={confirmar}
+          onNo={() => setAccion(null)} procesando={procesando} />
+      )}
     </div>
   )
 }
@@ -140,6 +248,7 @@ function ControlAcceso() {
             {pendienteNegocio && (
               <Confirmacion texto={textoConfirmacion(pendiente)} onSi={confirmar} onNo={() => setPendiente(null)} procesando={procesando} />
             )}
+            <SuscripcionNegocio n={n} onCambio={cargar} />
 
             <div style={{ marginTop: 10 }}>
               {n.usuarios.length === 0 && <div style={est.sub}>Sin usuarios.</div>}

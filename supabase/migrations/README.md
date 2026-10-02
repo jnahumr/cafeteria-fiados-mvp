@@ -5,7 +5,7 @@ Esquema de la base (Supabase / PostgreSQL) del proyecto, en migraciones
 
 ## Orden canónico
 
-Los archivos se numeran (`0001`…`0017`) y deben ejecutarse en ese orden,
+Los archivos se numeran (`0001`…`0018`) y deben ejecutarse en ese orden,
 porque respetan las dependencias entre objetos:
 
 | # | Archivo | Crea |
@@ -27,6 +27,7 @@ porque respetan las dependencias entre objetos:
 | 0015 | admin_feedback | función `admin_feedback()`: todo el feedback, solo para admins |
 | 0016 | control_acceso_admin | columnas `activo`; `mi_negocio_id()` bloquea deshabilitados; RPCs admin para habilitar/deshabilitar usuarios y negocios |
 | 0017 | admin_sin_negocio | el onboarding impide que un admin cree o se una a un negocio |
+| 0018 | suscripcion_prueba | `prueba_hasta`/`pagado_hasta` en negocios (30 días de prueba); `mi_negocio_id()` bloquea suscripciones vencidas; `mi_suscripcion()`; pagos manuales (`pagos_suscripcion`) y RPCs admin para registrar pago / extender prueba |
 
 ## Idempotencia
 
