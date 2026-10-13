@@ -103,7 +103,8 @@ $$;
 grant execute on function public.mi_estado_cuenta() to authenticated;
 
 -- 7) Suscripción del negocio del usuario actual (para la barra de aviso).
---    Funciona aunque esté vencida (no usa mi_negocio_id).
+--    Funciona aunque esté vencida (no usa mi_negocio_id). Incluye el nombre del
+--    negocio porque, vencida, la política RLS de negocios ya no deja leerlo.
 create or replace function public.mi_suscripcion()
 returns json
 language sql
@@ -112,6 +113,7 @@ security definer
 set search_path to 'public'
 as $$
   select json_build_object(
+    'negocio',        n.nombre,
     'plan',           case when n.pagado_hasta is not null
                              and n.pagado_hasta >= n.prueba_hasta then 'pagado' else 'prueba' end,
     'prueba_hasta',   n.prueba_hasta,

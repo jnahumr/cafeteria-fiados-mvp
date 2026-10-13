@@ -42,4 +42,8 @@ describe('enlacePago', () => {
     expect(url.startsWith('https://wa.me/50499990000?text=')).toBe(true)
     expect(decodeURIComponent(url.split('text=')[1])).toBe('Hola, quiero reactivar mi suscripción de Control de Créditos para el negocio "Infra".')
   })
+  it('usa "activar" y omite el negocio cuando no se indica', () => {
+    const url = enlacePago({ telefono: '50499990000' })
+    expect(decodeURIComponent(url.split('text=')[1])).toBe('Hola, quiero activar mi suscripción de Control de Créditos.')
+  })
 })

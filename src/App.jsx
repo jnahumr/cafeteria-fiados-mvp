@@ -245,15 +245,16 @@ function App() {
       // Si el admin deshabilitó al usuario o a su negocio, no cargamos nada más.
       const { data: estado } = await obtenerEstadoCuenta()
       setEstadoCuenta(estado || 'activo')
-      setNombreNegocio(data.negocios?.nombre || '')
       // Prueba / suscripción: para la barra de aviso y la pantalla de vencida.
+      // Con la suscripción vencida, RLS oculta la fila de negocios, así que el
+      // nombre se toma de mi_suscripcion() (SECURITY DEFINER).
       const { data: sus } = await obtenerSuscripcion()
       setSuscripcion(sus || null)
+      setNombreNegocio(data.negocios?.nombre || sus?.negocio || '')
       if (estado && estado !== 'activo') return
       setNegocioId(data.negocio_id)
       setRol(data.rol || '')
       setNombreUsuario(data.nombre || '')
-      setNombreNegocio(data.negocios?.nombre || '')
       setCodigoInvitacion(data.negocios?.codigo_invitacion || '')
     }
     cargarNegocio()

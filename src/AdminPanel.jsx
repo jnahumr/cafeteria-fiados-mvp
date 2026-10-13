@@ -170,7 +170,7 @@ function SuscripcionNegocio({ n, onCambio }) {
             onChange={(e) => setMonto(e.target.value)} style={{ width: 100 }} />
           <input type="text" placeholder="Referencia / nota" aria-label="Referencia o nota del pago" value={referencia}
             onChange={(e) => setReferencia(e.target.value)} style={{ width: 160 }} />
-          <Confirmacion texto="" onSi={confirmar} onNo={() => setAccion(null)} procesando={procesando} />
+          <Confirmacion texto={`Pago de "${n.nombre}":`} onSi={confirmar} onNo={() => setAccion(null)} procesando={procesando} />
         </div>
       )}
       {accion === 'prueba' && (

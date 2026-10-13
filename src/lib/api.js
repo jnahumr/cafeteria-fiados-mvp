@@ -194,7 +194,7 @@ export async function cambiarEstadoNegocio(negocioId, activo) {
 
 // --- SUSCRIPCIÓN (período de prueba / pago manual) ---
 
-// Suscripción del negocio actual: { plan, prueba_hasta, pagado_hasta, vence_el, dias_restantes }
+// Suscripción del negocio actual: { negocio, plan, prueba_hasta, pagado_hasta, vence_el, dias_restantes }
 export async function obtenerSuscripcion() {
   return await supabase.rpc('mi_suscripcion')
 }
