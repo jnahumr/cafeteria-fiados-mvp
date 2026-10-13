@@ -158,7 +158,7 @@ function SuscripcionNegocio({ n, onCambio }) {
           <button type="button" style={botonChico} disabled={procesando} onClick={() => setAccion('prueba')}>+7 días de prueba</button>
         </div>
       </div>
-      {error && <div style={{ ...est.aviso, marginTop: 8, marginBottom: 0 }}>{error}</div>}
+      {error ? <div style={{ ...est.aviso, marginTop: 8, marginBottom: 0 }}>{error}</div> : null}
       {accion === 'pago' && (
         <div style={est.confirmar}>
           <label>Meses{' '}

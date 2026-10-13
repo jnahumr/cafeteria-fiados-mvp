@@ -1646,11 +1646,11 @@ function CuentaDeshabilitada({ estado, nombreNegocio, onSalir }) {
       <div className="card">
         <div className="card-title">{vencida ? 'Suscripción vencida' : 'Acceso deshabilitado'}</div>
         <p className="empty">{texto} {!enlace && 'Contactá al administrador para reactivarlo.'}</p>
-        {enlace && (
+        {enlace ? (
           <a className="btn btn-primary btn-block" href={enlace} target="_blank" rel="noopener noreferrer">
             Suscribirme por WhatsApp
           </a>
-        )}
+        ) : null}
         <button type="button" className={`btn btn-block ${enlace ? '' : 'btn-primary'}`} onClick={onSalir} style={enlace ? { marginTop: 10 } : undefined}>
           Cerrar sesión
         </button>

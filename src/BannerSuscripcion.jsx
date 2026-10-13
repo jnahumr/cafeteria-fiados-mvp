@@ -18,11 +18,11 @@ export default function BannerSuscripcion({ suscripcion, esPropietario, nombreNe
         {aviso.texto}
         {!esPropietario && <span className="aviso-sub-nota"> · avisale al propietario</span>}
       </span>
-      {esPropietario && enlace && (
+      {esPropietario && enlace ? (
         <a className="aviso-sub-btn" href={enlace} target="_blank" rel="noopener noreferrer">
           Suscribirme
         </a>
-      )}
+      ) : null}
       {!urgente && (
         <button type="button" className="aviso-sub-cerrar" aria-label="Ocultar aviso" onClick={() => setOculto(true)}>
           ×
