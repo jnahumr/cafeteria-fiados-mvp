@@ -202,7 +202,7 @@ function ControlAcceso() {
     else setNegocios(data || [])
   }
 
-  useEffect(() => { cargar() }, [])
+  useEffect(() => { void cargar() }, [])
 
   async function confirmar() {
     if (!pendiente) return
@@ -217,7 +217,7 @@ function ControlAcceso() {
       setError(error.message)
       return
     }
-    cargar()
+    void cargar()
   }
 
   if (!negocios) return <p style={{ color: '#999' }}>{error || 'Cargando usuarios…'}</p>
@@ -321,7 +321,7 @@ export default function AdminPanel({ onSalir }) {
   const [feedback, setFeedback] = useState(null)
 
   useEffect(() => {
-    obtenerAdminOverview().then(({ data, error }) => {
+    void obtenerAdminOverview().then(({ data, error }) => {
       if (error) setError(error.message)
       else setDatos(data || [])
       setCargando(false)
@@ -329,7 +329,7 @@ export default function AdminPanel({ onSalir }) {
   }, [])
 
   useEffect(() => {
-    obtenerFeedbackAdmin().then(({ data }) => setFeedback(data || []))
+    void obtenerFeedbackAdmin().then(({ data }) => setFeedback(data || []))
   }, [])
 
   if (cargando) return <div style={est.wrap}>Cargando panel…</div>

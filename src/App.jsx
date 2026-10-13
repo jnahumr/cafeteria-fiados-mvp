@@ -192,17 +192,17 @@ function App() {
       setAdminVerificado(true)
     }
 
-    supabase.auth.getSession().then(({ data }) => {
+    void supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
       marcarCookie(data.session)
-      revisarAdmin(data.session)
+      void revisarAdmin(data.session)
       setCargando(false)
     })
 
     const { data: sub } = supabase.auth.onAuthStateChange((evento, nuevaSesion) => {
       setSession(nuevaSesion)
       marcarCookie(nuevaSesion)
-      revisarAdmin(nuevaSesion)
+      void revisarAdmin(nuevaSesion)
       if (evento === 'PASSWORD_RECOVERY') {
         setModoRecuperacion(true)
       }
@@ -257,14 +257,14 @@ function App() {
       setNombreUsuario(data.nombre || '')
       setCodigoInvitacion(data.negocios?.codigo_invitacion || '')
     }
-    cargarNegocio()
+    void cargarNegocio()
   }, [session, refrescar])
 
   // === 3. Cuando ya sabemos el negocio: cargar clientes y productos ===
   useEffect(() => {
     if (negocioId) {
-      cargarClientes()
-      cargarProductos()
+      void cargarClientes()
+      void cargarProductos()
     }
     
   }, [negocioId])
@@ -431,7 +431,7 @@ function App() {
   }
 
   function copiarCodigo() {
-    navigator.clipboard.writeText(codigoInvitacion)
+    void navigator.clipboard.writeText(codigoInvitacion)
     setMensaje('Código copiado: ' + codigoInvitacion)
   }
 
@@ -462,7 +462,7 @@ function App() {
     setMensaje('Producto agregado.')
     setNuevoProdNombre('')
     setNuevoProdPrecio('')
-    cargarProductos()
+    void cargarProductos()
   }
 
   async function eliminarProducto(idProducto) {
@@ -475,7 +475,7 @@ function App() {
       setMensaje('Error al eliminar producto: ' + error.message)
       return
     }
-    cargarProductos()
+    void cargarProductos()
   }
 
   async function registrarFiado() {
@@ -561,7 +561,7 @@ function App() {
     setProductoSel('')
     setProductoOtro('')
     setPrecioOtro('')
-    cargarClientes()
+    void cargarClientes()
   }
 
   // Abre el modal para registrar el abono de este cliente.
@@ -605,7 +605,7 @@ function App() {
     }
 
     setMensaje('Movimiento eliminado.')
-    cargarClientes()
+    void cargarClientes()
   }
 
   async function cerrarSesion() {
@@ -640,7 +640,7 @@ function App() {
             <button
               key={it.id}
               className={`nav-i ${vista === it.id ? 'on' : ''}`}
-              onClick={() => { irA(it.id); setClienteAbierto(null) }}
+              onClick={() => { void irA(it.id); setClienteAbierto(null) }}
             >
               <Icono name={it.icon} /> {it.label}
             </button>
@@ -945,7 +945,7 @@ function App() {
           <button
             key={it.id}
             className={`bn ${vista === it.id ? 'on' : ''}`}
-            onClick={() => { irA(it.id); setClienteAbierto(null) }}
+            onClick={() => { void irA(it.id); setClienteAbierto(null) }}
           >
             <Icono name={it.icon} />
             <span>{it.label}</span>
@@ -1422,7 +1422,7 @@ function ModalAbono({ cliente, onConfirmar, onCerrar }) {
           placeholder="0.00"
           value={monto}
           onChange={(e) => { setMonto(e.target.value); setError('') }}
-          onKeyDown={(e) => { if (e.key === 'Enter') abonar() }}
+          onKeyDown={(e) => { if (e.key === 'Enter') void abonar() }}
         />
 
         <div className="modal-quick">
