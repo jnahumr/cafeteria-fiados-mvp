@@ -21,11 +21,11 @@ export function calcularAviso(suscripcion) {
   if (!suscripcion || typeof suscripcion.dias_restantes !== 'number') return null
   const dias = suscripcion.dias_restantes
   if (dias < 0 || dias > DIAS_AVISO) return null
-  const que = suscripcion.plan === 'pagado' ? 'Tu suscripción vence' : 'Tu prueba vence'
-  const accion = suscripcion.plan === 'pagado' ? 'renová ahora' : 'suscribite ahora'
+  const que = suscripcion.plan === 'pagado' ? 'Tu suscripción vence' : 'Tu plan gratuito vence'
+  const accion = suscripcion.plan === 'pagado' ? 'renová ahora' : 'debe suscribirse a un plan de pago'
   return {
     nivel: dias <= DIAS_URGENTE ? 'urgente' : 'aviso',
-    texto: `${que} ${cuandoVence(dias)} — ${accion}`,
+    texto: `${que} ${cuandoVence(dias)}, ${accion}.`,
   }
 }
 
