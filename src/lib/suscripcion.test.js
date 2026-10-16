@@ -19,12 +19,12 @@ describe('calcularAviso', () => {
   it('avisa en ámbar entre 4 y 7 días', () => {
     const a = calcularAviso({ plan: 'prueba', dias_restantes: 7 })
     expect(a.nivel).toBe('aviso')
-    expect(a.texto).toBe('Tu plan gratuito vence en 7 días, debe suscribirse a un plan de pago.')
+    expect(a.texto).toBe('Su plan gratuito vence en 7 días, debe suscribirse a un plan de pago.')
   })
 
   it('pasa a urgente a 3 días o menos', () => {
     expect(calcularAviso({ plan: 'prueba', dias_restantes: 2 }).nivel).toBe('urgente')
-    expect(calcularAviso({ plan: 'prueba', dias_restantes: 0 }).texto).toBe('Tu plan gratuito vence hoy, debe suscribirse a un plan de pago.')
+    expect(calcularAviso({ plan: 'prueba', dias_restantes: 0 }).texto).toBe('Su plan gratuito vence hoy, debe suscribirse a un plan de pago.')
   })
 
   it('cambia el texto cuando el plan es pagado', () => {
