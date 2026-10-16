@@ -50,8 +50,8 @@ export default function Feedback({ autorNombre }) {
 
   async function enviar() {
     setError('')
-    if (calificacion === 0) return setError('Elija una calificación (1 a 5 estrellas).')
-    if (!comentario.trim()) return setError('Escriba un comentario.')
+    if (calificacion === 0) return setError('Elegí una calificación (1 a 5 estrellas).')
+    if (!comentario.trim()) return setError('Escribí un comentario.')
     setEnviando(true)
     const { data, error } = await crearFeedback({
       autor: autorNombre || null,
@@ -59,7 +59,7 @@ export default function Feedback({ autorNombre }) {
       comentario: comentario.trim(),
     })
     setEnviando(false)
-    if (error) return setError('No se pudo enviar. Intente de nuevo.')
+    if (error) return setError('No se pudo enviar. Intentá de nuevo.')
     setLista((prev) => [data, ...prev])
     setCalificacion(0)
     setComentario('')
@@ -75,16 +75,16 @@ export default function Feedback({ autorNombre }) {
     <div style={{ maxWidth: 640, margin: '0 auto', padding: 16 }}>
       <h2 style={{ color: VERDE, marginBottom: 4 }}>Retroalimentación</h2>
       <p style={{ color: '#666', marginTop: 0, fontSize: 14 }}>
-        Cuéntenos qué le parece la herramienta. Su opinión es visible para su negocio.
+        Contanos qué te parece la herramienta. Tu opinión es visible para tu negocio.
       </p>
 
       <div style={{ background: '#fff', border: '1px solid #e6e6e6', borderRadius: 12, padding: 16, marginBottom: 24 }}>
-        <div style={{ fontWeight: 600, fontSize: 14 }}>Su calificación</div>
+        <label style={{ fontWeight: 600, fontSize: 14 }}>Tu calificación</label>
         <Estrellas valor={calificacion} onChange={setCalificacion} />
         <textarea
           value={comentario}
           onChange={(e) => setComentario(e.target.value)}
-          placeholder="Escriba su comentario…"
+          placeholder="Escribí tu comentario…"
           maxLength={500}
           rows={3}
           style={{ width: '100%', marginTop: 12, padding: 10, borderRadius: 8, border: '1px solid #ccc', fontFamily: 'inherit', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' }}
@@ -103,7 +103,7 @@ export default function Feedback({ autorNombre }) {
       {cargando ? (
         <p style={{ color: '#666' }}>Cargando…</p>
       ) : lista.length === 0 ? (
-        <p style={{ color: '#999' }}>Todavía no hay comentarios. ¡Sea el primero!</p>
+        <p style={{ color: '#999' }}>Todavía no hay comentarios. ¡Sé el primero!</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {lista.map((f) => (

@@ -16,7 +16,7 @@ export default function BannerSuscripcion({ suscripcion, esPropietario, nombreNe
       <span className="aviso-sub-icono" aria-hidden="true">⚠</span>
       <span className="aviso-sub-texto">
         {aviso.texto}
-        {!esPropietario && <span className="aviso-sub-nota"> · avísele al propietario</span>}
+        {!esPropietario && <span className="aviso-sub-nota"> · avisale al propietario</span>}
       </span>
       {esPropietario && enlace ? (
         <a className="aviso-sub-btn" href={enlace} target="_blank" rel="noopener noreferrer">
