@@ -232,7 +232,7 @@ function App() {
         .maybeSingle()
 
       if (error) {
-        setMensaje('Error al cargar tu negocio: ' + error.message)
+        setMensaje('Error al cargar su negocio: ' + error.message)
         return
       }
       if (!data) {
@@ -326,11 +326,11 @@ function App() {
       precio = Number(precioOtro) || 0
       productoId = null // texto libre: no viene del catálogo
       if (nombre === '') {
-        setMensaje('Escribe el nombre del producto (opción Otro).')
+        setMensaje('Escriba el nombre del producto (opción Otro).')
         return
       }
     } else if (productoSel === '') {
-      setMensaje('Selecciona un producto para agregar.')
+      setMensaje('Seleccione un producto para agregar.')
       return
     } else {
       const p = productos.find((x) => x.id === productoSel)
@@ -438,7 +438,7 @@ function App() {
   async function agregarProducto() {
     setMensaje('')
     if (nuevoProdNombre.trim() === '') {
-      setMensaje('Escribe el nombre del producto.')
+      setMensaje('Escriba el nombre del producto.')
       return
     }
     const precioNum = Number(nuevoProdPrecio) || 0
@@ -482,7 +482,7 @@ function App() {
     setMensaje('')
 
     if (carrito.length === 0) {
-      setMensaje('Agrega al menos un producto al carrito.')
+      setMensaje('Agregue al menos un producto al carrito.')
       return
     }
 
@@ -491,7 +491,7 @@ function App() {
     if (clienteSel === 'nuevo') {
       const nombreLimpio = nombreNuevo.trim()
       if (nombreLimpio === '') {
-        setMensaje('Escribe el nombre del cliente nuevo.')
+        setMensaje('Escriba el nombre del cliente nuevo.')
         return
       }
            const yaExiste = buscarClienteExistente(clientes, nombreLimpio)
@@ -506,7 +506,7 @@ function App() {
 
         if (errNuevo) {
           if (errNuevo.code === '23505') {
-            setMensaje('Ya existe un cliente con ese nombre. Selecciónalo de la lista.')
+            setMensaje('Ya existe un cliente con ese nombre. Selecciónelo de la lista.')
           } else {
             setMensaje('Error al crear cliente: ' + errNuevo.message)
           }
@@ -515,7 +515,7 @@ function App() {
         clienteId = nuevo.id
       }
     } else if (clienteSel === '') {
-      setMensaje('Selecciona un cliente o agrega uno nuevo.')
+      setMensaje('Seleccione un cliente o agregue uno nuevo.')
       return
     } else {
       clienteId = Number(clienteSel)
@@ -590,7 +590,7 @@ function App() {
 
   // Borrado lógico (soft delete): marca el movimiento en vez de eliminarlo
   async function eliminarMovimiento(idMovimiento) {
-    const confirmar = window.confirm('¿Seguro que deseas eliminar este movimiento?')
+    const confirmar = window.confirm('¿Seguro que desea eliminar este movimiento?')
     if (!confirmar) return
 
     // En vez de DELETE, hacemos UPDATE guardando quién y cuándo
@@ -677,7 +677,7 @@ function App() {
           {vista === 'inicio' && (
             <>
               <div className="view-head">
-                <div className="view-eyebrow">Tu negocio</div>
+                <div className="view-eyebrow">Su negocio</div>
                 <h1 className="view-title">
                   {nombreNegocio || 'Control de Créditos'}
                   {rol === 'empleado' && <span className="topbar-role"> · empleado</span>}
@@ -705,7 +705,7 @@ function App() {
 
                   <label className="field-label">Cliente</label>
                   <select className="select" value={clienteSel} onChange={(e) => setClienteSel(e.target.value)} style={{ marginBottom: '0.9rem' }}>
-                    <option value="">Selecciona un cliente</option>
+                    <option value="">Seleccione un cliente</option>
                     {clientes.map((c) => (
                       <option key={c.id} value={c.id}>{c.nombre}</option>
                     ))}
@@ -722,7 +722,7 @@ function App() {
                   <label className="field-label">Agregar producto</label>
                   <div className="prod-row">
                     <select className="select" value={productoSel} onChange={(e) => setProductoSel(e.target.value)}>
-                      <option value="">Selecciona un producto</option>
+                      <option value="">Seleccione un producto</option>
                       {productos.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.nombre}{Number(p.precio) > 0 ? ` (L ${Number(p.precio).toFixed(2)})` : ''}
@@ -866,7 +866,7 @@ function App() {
                   <button className="btn btn-primary" onClick={agregarProducto}>Agregar</button>
                 </div>
                 {productos.length === 0 && (
-                  <p className="help">Aún no tienes productos. Agrega los que vendes para que aparezcan al registrar un fiado.</p>
+                  <p className="help">Aún no tiene productos. Agregue los que vende para que aparezcan al registrar un fiado.</p>
                 )}
                 <ul className="prod-list">
                   {productos.map((p) => (
@@ -900,7 +900,7 @@ function App() {
               {rol === 'duena' && codigoInvitacion && (
                 <div className="card">
                   <div className="card-title">Invitar empleados</div>
-                  <p className="help" style={{ marginBottom: '0.7rem' }}>Comparte este código con tus empleados para que se unan a tu negocio.</p>
+                  <p className="help" style={{ marginBottom: '0.7rem' }}>Comparta este código con sus empleados para que se unan a su negocio.</p>
                   <div className="invite-box">
                     <span className="invite-code">{codigoInvitacion}</span>
                     <button className="btn btn-sm btn-primary" onClick={copiarCodigo}>Copiar</button>
@@ -1052,7 +1052,7 @@ function Auth() {
   async function crearNegocio() {
     setError(''); setAviso('')
     if (nombreNegocio.trim() === '') {
-      setError('Escribe el nombre de tu negocio.')
+      setError('Escriba el nombre de su negocio.')
       return
     }
     setProcesando(true)
@@ -1068,7 +1068,7 @@ function Auth() {
   async function unirseConCodigo() {
     setError(''); setAviso('')
     if (codigo.trim() === '') {
-      setError('Escribe el código de invitación que te dieron.')
+      setError('Escriba el código de invitación que le dieron.')
       return
     }
     setProcesando(true)
@@ -1077,14 +1077,14 @@ function Auth() {
       password,
       options: { data: { nombre: nombre.trim(), codigo_invitacion: codigo.trim().toUpperCase() } },
     })
-    if (error) setError('No se pudo unir: verifica el código. (' + error.message + ')')
+    if (error) setError('No se pudo unir: verifique el código. (' + error.message + ')')
     setProcesando(false)
   }
 
   async function enviarRecuperacion() {
     setError(''); setAviso('')
     if (email.trim() === '') {
-      setError('Escribe tu correo para enviarte el enlace.')
+      setError('Escriba su correo para enviarle el enlace.')
       return
     }
     setProcesando(true)
@@ -1094,7 +1094,7 @@ function Auth() {
     if (error) {
       setError('No se pudo enviar el correo: ' + error.message)
     } else {
-      setAviso('Te enviamos un correo con el enlace para restablecer tu contraseña. Revisa tu bandeja (y el spam).')
+      setAviso('Le enviamos un correo con el enlace para restablecer su contraseña. Revise su bandeja (y el spam).')
     }
     setProcesando(false)
   }
@@ -1131,7 +1131,7 @@ function Auth() {
 
         {(modo === 'crear' || modo === 'unir') && (
           <div className="field">
-            <label className="field-label">Tu nombre</label>
+            <label className="field-label">Su nombre</label>
             <input
               className="input"
               type="text"
@@ -1194,7 +1194,7 @@ function Auth() {
             {modo === 'login' && (
               <div style={{ textAlign: 'right', marginTop: '0.5rem' }}>
                 <button className="btn-quiet btn-muted" onClick={() => { setModo('recuperar'); setError(''); setAviso('') }}>
-                  ¿Olvidaste tu contraseña?
+                  ¿Olvidó su contraseña?
                 </button>
               </div>
             )}
@@ -1202,7 +1202,7 @@ function Auth() {
         )}
 
         {modo === 'recuperar' && (
-          <p className="help">Te enviaremos un enlace a tu correo para crear una contraseña nueva.</p>
+          <p className="help">Le enviaremos un enlace a su correo para crear una contraseña nueva.</p>
         )}
 
         <button className="btn btn-primary btn-block btn-lg" onClick={accionPrincipal} disabled={procesando} style={{ marginTop: '0.4rem' }}>
@@ -1229,13 +1229,13 @@ function Auth() {
 
         <div className="switch-links">
           {modo !== 'login' && (
-            <div>¿Ya tienes cuenta? <button className="btn-quiet" onClick={() => { setModo('login'); setError(''); setAviso('') }}>Inicia sesión</button></div>
+            <div>¿Ya tiene cuenta? <button className="btn-quiet" onClick={() => { setModo('login'); setError(''); setAviso('') }}>Inicie sesión</button></div>
           )}
           {modo !== 'crear' && modo !== 'recuperar' && (
-            <div>¿Vas a abrir un negocio? <button className="btn-quiet" onClick={() => { setModo('crear'); setError(''); setAviso('') }}>Regístralo</button></div>
+            <div>¿Va a abrir un negocio? <button className="btn-quiet" onClick={() => { setModo('crear'); setError(''); setAviso('') }}>Regístrelo</button></div>
           )}
           {modo !== 'unir' && modo !== 'recuperar' && (
-            <div>¿Te invitaron a un negocio? <button className="btn-quiet" onClick={() => { setModo('unir'); setError(''); setAviso('') }}>Unirme con código</button></div>
+            <div>¿Lo invitaron a un negocio? <button className="btn-quiet" onClick={() => { setModo('unir'); setError(''); setAviso('') }}>Unirme con código</button></div>
           )}
         </div>
       </div>
@@ -1259,7 +1259,7 @@ function Onboarding({ nombreSugerido, onListo }) {
   async function crear() {
     setError('')
     if (nombreNegocio.trim() === '') {
-      setError('Escribe el nombre de tu negocio.')
+      setError('Escriba el nombre de su negocio.')
       return
     }
     setProcesando(true)
@@ -1278,7 +1278,7 @@ function Onboarding({ nombreSugerido, onListo }) {
   async function unir() {
     setError('')
     if (codigo.trim() === '') {
-      setError('Escribe el código de invitación que te dieron.')
+      setError('Escriba el código de invitación que le dieron.')
       return
     }
     setProcesando(true)
@@ -1287,7 +1287,7 @@ function Onboarding({ nombreSugerido, onListo }) {
       nombreUsuario: nombre.trim(),
     })
     if (error) {
-      setError('No se pudo unir: verifica el código. (' + error.message + ')')
+      setError('No se pudo unir: verifique el código. (' + error.message + ')')
       setProcesando(false)
       return
     }
@@ -1306,7 +1306,7 @@ function Onboarding({ nombreSugerido, onListo }) {
       </div>
       <div className="card">
         <div className="card-title">¡Bienvenido/a!</div>
-        <p className="help" style={{ marginBottom: '1rem' }}>Para terminar, cuéntanos cómo vas a usar la app.</p>
+        <p className="help" style={{ marginBottom: '1rem' }}>Para terminar, cuéntenos cómo va a usar la app.</p>
 
         {modo === 'elegir' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
@@ -1321,7 +1321,7 @@ function Onboarding({ nombreSugerido, onListo }) {
 
         {(modo === 'crear' || modo === 'unir') && (
           <div className="field">
-            <label className="field-label">Tu nombre</label>
+            <label className="field-label">Su nombre</label>
             <input
               className="input"
               type="text"
@@ -1398,7 +1398,7 @@ function ModalAbono({ cliente, onConfirmar, onCerrar }) {
   async function abonar() {
     const n = Number(monto)
     if (!n || n <= 0) {
-      setError('Escribe un monto mayor que cero.')
+      setError('Escriba un monto mayor que cero.')
       return
     }
     setProcesando(true)
@@ -1566,7 +1566,7 @@ function NuevaPassword({ onListo }) {
       setProcesando(false)
       return
     }
-    setAviso('¡Contraseña actualizada! Ya puedes usar la app.')
+    setAviso('¡Contraseña actualizada! Ya puede usar la app.')
     setProcesando(false)
     setTimeout(() => onListo(), 1500)
   }
@@ -1598,7 +1598,7 @@ function NuevaPassword({ onListo }) {
             className="input"
             type="password"
             autoComplete="new-password"
-            placeholder="Escríbela de nuevo"
+            placeholder="Escríbala de nuevo"
             value={password2}
             onChange={(e) => setPassword2(e.target.value)}
           />
@@ -1628,9 +1628,9 @@ function PantallaCargando() {
 
 // Pantalla para usuarios o negocios deshabilitados por el administrador.
 const TEXTOS_DESHABILITADA = {
-  negocio_deshabilitado: 'El negocio al que pertenecés está deshabilitado.',
-  usuario_deshabilitado: 'Tu usuario está deshabilitado.',
-  suscripcion_vencida: 'El período de prueba o la suscripción de tu negocio venció. Tus datos están guardados: se reactivan apenas se registre el pago.',
+  negocio_deshabilitado: 'El negocio al que pertenece está deshabilitado.',
+  usuario_deshabilitado: 'Su usuario está deshabilitado.',
+  suscripcion_vencida: 'El período de prueba o la suscripción de su negocio venció. Sus datos están guardados: se reactivan apenas se registre el pago.',
 }
 
 function CuentaDeshabilitada({ estado, nombreNegocio, onSalir }) {
@@ -1645,7 +1645,7 @@ function CuentaDeshabilitada({ estado, nombreNegocio, onSalir }) {
       </div>
       <div className="card">
         <div className="card-title">{vencida ? 'Suscripción vencida' : 'Acceso deshabilitado'}</div>
-        <p className="empty">{texto} {!enlace && 'Contactá al administrador para reactivarlo.'}</p>
+        <p className="empty">{texto} {!enlace && 'Contacte al administrador para reactivarlo.'}</p>
         {enlace ? (
           <a className="btn btn-primary btn-block" href={enlace} target="_blank" rel="noopener noreferrer">
             Suscribirme por WhatsApp
@@ -1668,7 +1668,7 @@ function NoEncontrado() {
       </div>
       <div className="card">
         <div className="card-title">Página no encontrada</div>
-        <p className="empty">La dirección que buscás no existe.</p>
+        <p className="empty">La dirección que busca no existe.</p>
         <a className="btn btn-primary btn-block" href="/app">Ir al inicio</a>
       </div>
     </div>
