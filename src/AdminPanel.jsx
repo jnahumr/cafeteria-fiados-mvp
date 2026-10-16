@@ -244,7 +244,7 @@ function ControlAcceso() {
                 onClick={() => setPendiente({ tipo: 'negocio', id: n.id, activo: !n.activo, nombre: n.nombre })}
               />
             </div>
-            {esMiNegocio && <div style={est.sub}>Es su negocio: no se puede deshabilitar desde aquí.</div>}
+            {esMiNegocio ? <div style={est.sub}>Es su negocio: no se puede deshabilitar desde aquí.</div> : null}
             {pendienteNegocio && (
               <Confirmacion texto={textoConfirmacion(pendiente)} onSi={confirmar} onNo={() => setPendiente(null)} procesando={procesando} />
             )}
@@ -260,7 +260,7 @@ function ControlAcceso() {
                     <div style={est.filaUsuario}>
                       <div>
                         <div style={{ fontSize: 14 }}>
-                          {nombre} {u.es_yo && <span style={est.sub}>(usted)</span>}
+                          {nombre} {u.es_yo ? <span style={est.sub}>(usted)</span> : null}
                         </div>
                         <div style={est.sub}>
                           {u.rol === 'duena' ? 'Propietario' : 'Empleado'}{u.correo ? ` · ${u.correo}` : ''}

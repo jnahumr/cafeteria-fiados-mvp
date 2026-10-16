@@ -79,7 +79,7 @@ export default function Feedback({ autorNombre }) {
       </p>
 
       <div style={{ background: '#fff', border: '1px solid #e6e6e6', borderRadius: 12, padding: 16, marginBottom: 24 }}>
-        <label style={{ fontWeight: 600, fontSize: 14 }}>Su calificación</label>
+        <div style={{ fontWeight: 600, fontSize: 14 }}>Su calificación</div>
         <Estrellas valor={calificacion} onChange={setCalificacion} />
         <textarea
           value={comentario}

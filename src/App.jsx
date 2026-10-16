@@ -1131,8 +1131,9 @@ function Auth() {
 
         {(modo === 'crear' || modo === 'unir') && (
           <div className="field">
-            <label className="field-label">Su nombre</label>
+            <label className="field-label" htmlFor="registro-nombre">Su nombre</label>
             <input
+              id="registro-nombre"
               className="input"
               type="text"
               placeholder="Carlos Pérez"
@@ -1229,13 +1230,13 @@ function Auth() {
 
         <div className="switch-links">
           {modo !== 'login' && (
-            <div>¿Ya tiene cuenta? <button className="btn-quiet" onClick={() => { setModo('login'); setError(''); setAviso('') }}>Inicie sesión</button></div>
+            <div>¿Ya tiene cuenta? <button type="button" className="btn-quiet" onClick={() => { setModo('login'); setError(''); setAviso('') }}>Inicie sesión</button></div>
           )}
           {modo !== 'crear' && modo !== 'recuperar' && (
-            <div>¿Va a abrir un negocio? <button className="btn-quiet" onClick={() => { setModo('crear'); setError(''); setAviso('') }}>Regístrelo</button></div>
+            <div>¿Va a abrir un negocio? <button type="button" className="btn-quiet" onClick={() => { setModo('crear'); setError(''); setAviso('') }}>Regístrelo</button></div>
           )}
           {modo !== 'unir' && modo !== 'recuperar' && (
-            <div>¿Lo invitaron a un negocio? <button className="btn-quiet" onClick={() => { setModo('unir'); setError(''); setAviso('') }}>Unirme con código</button></div>
+            <div>¿Lo invitaron a un negocio? <button type="button" className="btn-quiet" onClick={() => { setModo('unir'); setError(''); setAviso('') }}>Unirme con código</button></div>
           )}
         </div>
       </div>
@@ -1321,8 +1322,9 @@ function Onboarding({ nombreSugerido, onListo }) {
 
         {(modo === 'crear' || modo === 'unir') && (
           <div className="field">
-            <label className="field-label">Su nombre</label>
+            <label className="field-label" htmlFor="onboarding-nombre">Su nombre</label>
             <input
+              id="onboarding-nombre"
               className="input"
               type="text"
               placeholder="Carlos Pérez"
