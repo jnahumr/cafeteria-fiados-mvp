@@ -5,7 +5,9 @@ import { calcularSaldoCliente, buscarClienteExistente } from './lib/creditos'
 import { sinAcentos } from './lib/texto'
 import { formatFecha, formatFechaCorta } from './lib/fecha'
 import Feedback from './Feedback'
-import { obtenerProductos, crearProducto, eliminarProductoPorId, obtenerClientes, obtenerMovimientos, crearCliente, actualizarCliente, crearMovimientoFiado, crearDetalleMovimiento, crearAbono, marcarMovimientoEliminado, crearNegocioOnboarding, unirseNegocioOnboarding, esAdmin, obtenerEstadoCuenta } from './lib/api'
+import { obtenerProductos, crearProducto, eliminarProductoPorId, obtenerClientes, obtenerMovimientos, crearCliente, actualizarCliente, crearMovimientoFiado, crearDetalleMovimiento, crearAbono, marcarMovimientoEliminado, crearNegocioOnboarding, unirseNegocioOnboarding, esAdmin, obtenerEstadoCuenta, obtenerSuscripcion } from './lib/api'
+import BannerSuscripcion from './BannerSuscripcion'
+import { enlacePago, WHATSAPP_SOPORTE } from './lib/suscripcion'
 import AdminPanel from './AdminPanel'
 
 
@@ -133,7 +135,8 @@ function App() {
   }
   const [cargando, setCargando] = useState(true)
   const [sinPerfil, setSinPerfil] = useState(false) // logueado pero sin negocio (ej. entró con Google)
-  const [estadoCuenta, setEstadoCuenta] = useState('activo') // activo | usuario_deshabilitado | negocio_deshabilitado
+  const [estadoCuenta, setEstadoCuenta] = useState('activo') // activo | usuario_deshabilitado | negocio_deshabilitado | suscripcion_vencida
+  const [suscripcion, setSuscripcion] = useState(null) // { plan, vence_el, dias_restantes, ... }
   const [refrescar, setRefrescar] = useState(0) // para recargar el negocio tras el onboarding
 
   const [modoRecuperacion, setModoRecuperacion] = useState(false)
@@ -189,17 +192,17 @@ function App() {
       setAdminVerificado(true)
     }
 
-    supabase.auth.getSession().then(({ data }) => {
+    void supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
       marcarCookie(data.session)
-      revisarAdmin(data.session)
+      void revisarAdmin(data.session)
       setCargando(false)
     })
 
     const { data: sub } = supabase.auth.onAuthStateChange((evento, nuevaSesion) => {
       setSession(nuevaSesion)
       marcarCookie(nuevaSesion)
-      revisarAdmin(nuevaSesion)
+      void revisarAdmin(nuevaSesion)
       if (evento === 'PASSWORD_RECOVERY') {
         setModoRecuperacion(true)
       }
@@ -218,6 +221,7 @@ function App() {
       setNombreUsuario('')
       setSinPerfil(false)
       setEstadoCuenta('activo')
+      setSuscripcion(null)
       return
     }
     async function cargarNegocio() {
@@ -241,21 +245,26 @@ function App() {
       // Si el admin deshabilitó al usuario o a su negocio, no cargamos nada más.
       const { data: estado } = await obtenerEstadoCuenta()
       setEstadoCuenta(estado || 'activo')
+      // Prueba / suscripción: para la barra de aviso y la pantalla de vencida.
+      // Con la suscripción vencida, RLS oculta la fila de negocios, así que el
+      // nombre se toma de mi_suscripcion() (SECURITY DEFINER).
+      const { data: sus } = await obtenerSuscripcion()
+      setSuscripcion(sus || null)
+      setNombreNegocio(data.negocios?.nombre || sus?.negocio || '')
       if (estado && estado !== 'activo') return
       setNegocioId(data.negocio_id)
       setRol(data.rol || '')
       setNombreUsuario(data.nombre || '')
-      setNombreNegocio(data.negocios?.nombre || '')
       setCodigoInvitacion(data.negocios?.codigo_invitacion || '')
     }
-    cargarNegocio()
+    void cargarNegocio()
   }, [session, refrescar])
 
   // === 3. Cuando ya sabemos el negocio: cargar clientes y productos ===
   useEffect(() => {
     if (negocioId) {
-      cargarClientes()
-      cargarProductos()
+      void cargarClientes()
+      void cargarProductos()
     }
     
   }, [negocioId])
@@ -422,7 +431,7 @@ function App() {
   }
 
   function copiarCodigo() {
-    navigator.clipboard.writeText(codigoInvitacion)
+    void navigator.clipboard.writeText(codigoInvitacion)
     setMensaje('Código copiado: ' + codigoInvitacion)
   }
 
@@ -453,7 +462,7 @@ function App() {
     setMensaje('Producto agregado.')
     setNuevoProdNombre('')
     setNuevoProdPrecio('')
-    cargarProductos()
+    void cargarProductos()
   }
 
   async function eliminarProducto(idProducto) {
@@ -466,7 +475,7 @@ function App() {
       setMensaje('Error al eliminar producto: ' + error.message)
       return
     }
-    cargarProductos()
+    void cargarProductos()
   }
 
   async function registrarFiado() {
@@ -552,7 +561,7 @@ function App() {
     setProductoSel('')
     setProductoOtro('')
     setPrecioOtro('')
-    cargarClientes()
+    void cargarClientes()
   }
 
   // Abre el modal para registrar el abono de este cliente.
@@ -596,7 +605,7 @@ function App() {
     }
 
     setMensaje('Movimiento eliminado.')
-    cargarClientes()
+    void cargarClientes()
   }
 
   async function cerrarSesion() {
@@ -631,7 +640,7 @@ function App() {
             <button
               key={it.id}
               className={`nav-i ${vista === it.id ? 'on' : ''}`}
-              onClick={() => { irA(it.id); setClienteAbierto(null) }}
+              onClick={() => { void irA(it.id); setClienteAbierto(null) }}
             >
               <Icono name={it.icon} /> {it.label}
             </button>
@@ -657,6 +666,11 @@ function App() {
           </div>
           <button className="mobile-logout" onClick={cerrarSesion}>Cerrar sesión</button>
         </header>
+        <BannerSuscripcion
+          suscripcion={suscripcion}
+          esPropietario={rol === 'duena'}
+          nombreNegocio={nombreNegocio}
+        />
         <div className="content">
 
           {/* ---------- INICIO ---------- */}
@@ -931,7 +945,7 @@ function App() {
           <button
             key={it.id}
             className={`bn ${vista === it.id ? 'on' : ''}`}
-            onClick={() => { irA(it.id); setClienteAbierto(null) }}
+            onClick={() => { void irA(it.id); setClienteAbierto(null) }}
           >
             <Icono name={it.icon} />
             <span>{it.label}</span>
@@ -956,7 +970,7 @@ function App() {
     if (!adminVerificado) return <PantallaCargando />
     if (esAdminUsuario) return <Navigate to="/admin" replace />
     if (estadoCuenta !== 'activo') {
-      return <CuentaDeshabilitada estado={estadoCuenta} onSalir={cerrarSesion} />
+      return <CuentaDeshabilitada estado={estadoCuenta} nombreNegocio={nombreNegocio} onSalir={cerrarSesion} />
     }
     if (sinPerfil) {
       return (
@@ -1408,7 +1422,7 @@ function ModalAbono({ cliente, onConfirmar, onCerrar }) {
           placeholder="0.00"
           value={monto}
           onChange={(e) => { setMonto(e.target.value); setError('') }}
-          onKeyDown={(e) => { if (e.key === 'Enter') abonar() }}
+          onKeyDown={(e) => { if (e.key === 'Enter') void abonar() }}
         />
 
         <div className="modal-quick">
@@ -1613,10 +1627,16 @@ function PantallaCargando() {
 }
 
 // Pantalla para usuarios o negocios deshabilitados por el administrador.
-function CuentaDeshabilitada({ estado, onSalir }) {
-  const texto = estado === 'negocio_deshabilitado'
-    ? 'El negocio al que pertenecés está deshabilitado.'
-    : 'Tu usuario está deshabilitado.'
+const TEXTOS_DESHABILITADA = {
+  negocio_deshabilitado: 'El negocio al que pertenecés está deshabilitado.',
+  usuario_deshabilitado: 'Tu usuario está deshabilitado.',
+  suscripcion_vencida: 'El período de prueba o la suscripción de tu negocio venció. Tus datos están guardados: se reactivan apenas se registre el pago.',
+}
+
+function CuentaDeshabilitada({ estado, nombreNegocio, onSalir }) {
+  const vencida = estado === 'suscripcion_vencida'
+  const texto = TEXTOS_DESHABILITADA[estado] ?? TEXTOS_DESHABILITADA.usuario_deshabilitado
+  const enlace = vencida ? enlacePago({ telefono: WHATSAPP_SOPORTE, nombreNegocio, vencida: true }) : null
   return (
     <div className="screen" style={{ textAlign: 'center' }}>
       <div className="brand">
@@ -1624,9 +1644,16 @@ function CuentaDeshabilitada({ estado, onSalir }) {
         <div className="brand-name">Control de Créditos</div>
       </div>
       <div className="card">
-        <div className="card-title">Acceso deshabilitado</div>
-        <p className="empty">{texto} Contactá al administrador para reactivarlo.</p>
-        <button type="button" className="btn btn-primary btn-block" onClick={onSalir}>Cerrar sesión</button>
+        <div className="card-title">{vencida ? 'Suscripción vencida' : 'Acceso deshabilitado'}</div>
+        <p className="empty">{texto} {!enlace && 'Contactá al administrador para reactivarlo.'}</p>
+        {enlace ? (
+          <a className="btn btn-primary btn-block" href={enlace} target="_blank" rel="noopener noreferrer">
+            Suscribirme por WhatsApp
+          </a>
+        ) : null}
+        <button type="button" className={`btn btn-block ${enlace ? '' : 'btn-primary'}`} onClick={onSalir} style={enlace ? { marginTop: 10 } : undefined}>
+          Cerrar sesión
+        </button>
       </div>
     </div>
   )
