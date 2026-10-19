@@ -1238,6 +1238,11 @@ function Auth() {
             <div>¿Te invitaron a un negocio? <button className="btn-quiet" onClick={() => { setModo('unir'); setError(''); setAviso('') }}>Unirme con código</button></div>
           )}
         </div>
+
+        <p className="legal-note">
+          Al usar la app acepta los <a href="https://miscuentashn.com/terminos" target="_blank" rel="noopener noreferrer">Términos de uso</a> y
+          la <a href="https://miscuentashn.com/privacidad" target="_blank" rel="noopener noreferrer">Política de privacidad</a>.
+        </p>
       </div>
     </div>
   )

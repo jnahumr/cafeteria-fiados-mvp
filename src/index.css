@@ -498,3 +498,7 @@ h1, h2, h3 { margin: 0; letter-spacing: -0.01em; color: var(--ink); }
   flex-shrink: 0; background: inherit; border: none; color: inherit;
   font-size: 1.3rem; line-height: 1; cursor: pointer; padding: 0 4px;
 }
+
+/* ---------- Aviso legal en la pantalla de acceso ---------- */
+.legal-note { margin: 1rem 0 0; font-size: 0.78rem; color: var(--ink-soft); text-align: center; line-height: 1.4; }
+.legal-note a { color: var(--green-dark); text-decoration: underline; text-underline-offset: 2px; }
