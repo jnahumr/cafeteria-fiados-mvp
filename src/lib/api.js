@@ -2,6 +2,7 @@
 // Cada función envuelve una consulta y devuelve { data, error } tal como Supabase,
 // para que App.jsx mantenga sus mismos chequeos de error sin cambiar su lógica.
 import { supabase } from '../supabaseClient'
+import { traerTodo } from './paginar'
 
 // --- PRODUCTOS ---
 
@@ -31,19 +32,28 @@ export async function eliminarProductoPorId(idProducto) {
 // --- CLIENTES Y MOVIMIENTOS (lecturas) ---
 
 // Trae todos los clientes del negocio, ordenados por nombre.
+// Paginado: Supabase corta cada consulta en 1000 filas.
 export async function obtenerClientes() {
-  return await supabase
-    .from('clientes')
-    .select('*')
-    .order('nombre')
+  return await traerTodo(() =>
+    supabase
+      .from('clientes')
+      .select('*')
+      .order('nombre')
+      .order('id')
+  )
 }
 
 // Trae todos los movimientos con su autor, quién los eliminó y su detalle.
+// Paginado: con más de 1000 movimientos, Supabase descartaba los más antiguos
+// y los saldos salían mal. El orden por id desempata para no saltar filas.
 export async function obtenerMovimientos() {
-  return await supabase
-    .from('movimientos')
-    .select('*, perfiles!movimientos_registrado_por_fkey(nombre), eliminador:perfiles!movimientos_eliminado_por_fkey(nombre), movimiento_detalle(producto_nombre, cantidad, precio_unitario)')
-    .order('fecha', { ascending: false })
+  return await traerTodo(() =>
+    supabase
+      .from('movimientos')
+      .select('*, perfiles!movimientos_registrado_por_fkey(nombre), eliminador:perfiles!movimientos_eliminado_por_fkey(nombre), movimiento_detalle(producto_nombre, cantidad, precio_unitario)')
+      .order('fecha', { ascending: false })
+      .order('id', { ascending: false })
+  )
 }
 
 // --- CLIENTES Y MOVIMIENTOS (escrituras) ---
